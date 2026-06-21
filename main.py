@@ -19,13 +19,20 @@ Hermes Studio — 本地 AI Agent 平台
 import argparse
 import asyncio
 import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+# 自动加载项目根目录的 .env 文件，无需手动 source
+_load_env = Path(__file__).parent / ".env"
+if _load_env.exists():
+    load_dotenv(_load_env)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Hermes Studio — 本地 AI Agent")
     parser.add_argument("--cli", action="store_true", help="终端模式")
     parser.add_argument("--port", type=int, default=8648, help="Web 服务端口（默认 8648）")
-    parser.add_argument("--host", default="127.0.0.1", help="监听地址（默认仅本地）")
+    parser.add_argument("--host", default="127.0.0.1", help="监听地址（默认仅本地，公网用 --host 0.0.0.0）")
     args = parser.parse_args()
 
     if args.cli:
@@ -34,18 +41,18 @@ def main():
     else:
         from bus.server import run_server
         print(f"""
-╔══════════════════════════════════════════════════╗
-║         Hermes Studio v0.1.0                     ║
-║                                                  ║
+╔═════════════════════════════════════════════════════╗
+║         Hermes Studio v0.1.0                        ║
+║                                                     ║
 ║  Web 界面:  http://localhost:{args.port}            ║
 ║  API 文档:  http://localhost:{args.port}/docs       ║
 ║  健康检查:  http://localhost:{args.port}/api/health ║
-║                                                  ║
-║  多端接入:                                        ║
-║  - 浏览器打开 Web 界面                            ║
-║  - CLI: python main.py --cli                      ║
-║  - WebSocket: ws://localhost:{args.port}/ws        ║
-╚══════════════════════════════════════════════════╝
+║                                                     ║
+║  多端接入:                                          ║
+║  - 浏览器打开 Web 界面                              ║
+║  - CLI: python main.py --cli                        ║
+║  - WebSocket: ws://localhost:{args.port}/ws         ║
+╚═════════════════════════════════════════════════════╝
         """.strip())
         run_server(host=args.host, port=args.port)
 
