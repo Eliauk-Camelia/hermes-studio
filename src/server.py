@@ -40,7 +40,9 @@ HTML_PAGE = """<!DOCTYPE html>
     function send() {
     const input = document.getElementById("msg");
     ws.send(JSON.stringify({content: input.value}));
-    document.getElementById("chat").innerHTML += "<div>你: " + input.value + "</div>";
+    const div = document.createElement("div");
+    div.textContent = "你: " + input.value;
+    document.getElementById("chat").appendChild(div);
     input.value = "";
     }
 </script>
