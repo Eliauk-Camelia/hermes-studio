@@ -2,262 +2,372 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Camelia Studio</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg-deep:    #161a18;
-    --bg-surface: #1e2321;
-    --bg-input:   #252b28;
-    --text:       #e4e0dc;
-    --text-dim:   #8b958b;
-    --accent:     #e8927c;
-    --accent-dim: #b87060;
-    --sage:       #8b9d83;
-    --sage-dim:   #5a6b55;
-    --border:     #2a302d;
-    --tool-bg:    #1c2320;
-    --tool-border:#2d3830;
-    --shadow:     0 2px 12px rgba(0,0,0,0.3);
+    --ink:       #0d1210;
+    --leaf:      #141c18;
+    --moss:      #1a231e;
+    --bark:      #232d28;
+    --stone:     #2c3832;
+    --mist:      #8b958b;
+    --mist-dim:  #5a655c;
+    --petal:     #e8927c;
+    --petal-dim: #c47260;
+    --petal-soft:#f0c4b8;
+    --sage:      #8ba389;
+    --sage-dim:  #5c725a;
+    --dew:       #f0ece6;
+    --dew-dim:   #c4bfb6;
+    --glow-petal:rgba(232,146,124,0.12);
+    --glow-sage: rgba(139,163,137,0.08);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.5);
   }
 
   * { margin:0; padding:0; box-sizing:border-box; }
 
   body {
     font-family: 'Noto Serif SC', serif;
-    background: var(--bg-deep);
-    color: var(--text);
-    height: 100vh;
+    background: var(--ink);
+    color: var(--dew);
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* ── 背景纹理 ── */
-  body::before {
+  /* ── 背景层：斑驳光斑 ── */
+  .bg-layer {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  }
+  .bg-layer::before {
     content: '';
-    position: fixed;
+    position: absolute;
     inset: 0;
     background:
-      radial-gradient(ellipse 80% 60% at 85% 20%, rgba(232,146,124,0.04) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 15% 80%, rgba(139,157,131,0.03) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
+      radial-gradient(ellipse 70% 50% at 90% 10%, var(--glow-petal) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 10% 90%, var(--glow-sage) 0%, transparent 55%),
+      radial-gradient(ellipse 30% 30% at 50% 50%, rgba(232,146,124,0.03) 0%, transparent 70%);
+  }
+  /* 噪点纹理 */
+  .bg-layer::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.7;
   }
 
-  /* ── 头部 ── */
-  #header {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-surface);
+  /* ── 顶部 ── */
+  .header {
+    position: relative; z-index: 2;
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 20px;
+    background: linear-gradient(180deg, var(--leaf) 0%, rgba(20,28,24,0.95) 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    backdrop-filter: blur(12px);
     flex-shrink: 0;
   }
-
-  #header .logo {
-    width: 32px;
-    height: 32px;
+  .header-logo {
+    width: 34px; height: 34px;
     border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
+    background: linear-gradient(135deg, var(--petal), var(--petal-dim));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    box-shadow: 0 2px 10px rgba(232,146,124,0.25);
   }
-
-  #header h1 {
-    font-size: 1.05rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--text);
+  .header-title {
+    font-size: 1rem; font-weight: 600;
+    letter-spacing: 0.03em; color: var(--dew);
   }
-
-  #header .badge {
+  .header-badge {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--text-dim);
-    background: var(--bg-input);
-    padding: 3px 8px;
-    border-radius: 4px;
-    letter-spacing: 0.04em;
+    font-size: 0.65rem; color: var(--mist);
+    background: rgba(255,255,255,0.04);
+    padding: 3px 9px; border-radius: 5px;
+    letter-spacing: 0.05em;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .header-status {
+    margin-left: auto;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--sage);
+    box-shadow: 0 0 6px var(--sage);
+    animation: pulse-status 3s ease-in-out infinite;
+  }
+  @keyframes pulse-status {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
   }
 
-  /* ── 聊天区域 ── */
-  #chat {
-    position: relative;
-    z-index: 1;
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  /* ── 聊天区 ── */
+  .chat {
+    position: relative; z-index: 1;
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    padding: 20px 16px 10px;
+    display: flex; flex-direction: column;
+    gap: 6px;
     scroll-behavior: smooth;
   }
+  .chat::before {
+    content: '';
+    position: absolute; inset: 0;
+    pointer-events: none;
+    /* 山茶花剪影水印 */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='60' r='18' fill='none' stroke='%23e8927c' stroke-width='0.8' opacity='0.06'/%3E%3Ccircle cx='82' cy='78' r='16' fill='none' stroke='%23e8927c' stroke-width='0.8' opacity='0.06'/%3E%3Ccircle cx='118' cy='78' r='16' fill='none' stroke='%23e8927c' stroke-width='0.8' opacity='0.06'/%3E%3Ccircle cx='76' cy='98' r='16' fill='none' stroke='%23e8927c' stroke-width='0.7' opacity='0.06'/%3E%3Ccircle cx='124' cy='98' r='16' fill='none' stroke='%23e8927c' stroke-width='0.7' opacity='0.06'/%3E%3Ccircle cx='90' cy='115' r='15' fill='none' stroke='%23e8927c' stroke-width='0.6' opacity='0.05'/%3E%3Ccircle cx='110' cy='115' r='15' fill='none' stroke='%23e8927c' stroke-width='0.6' opacity='0.05'/%3E%3Ccircle cx='100' cy='100' r='6' fill='%23e8927c' opacity='0.05'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 92% 92%;
+    background-size: 180px 180px;
+  }
 
-  /* 淡入动画 */
+  /* ── 欢迎提示 ── */
+  .welcome {
+    align-self: center;
+    text-align: center;
+    margin: 40px 0 20px;
+    opacity: 0;
+    animation: welcomeIn 0.8s 0.2s ease-out forwards;
+  }
+  @keyframes welcomeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .welcome-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .welcome-title { font-size: 1.1rem; font-weight: 600; color: var(--dew); margin-bottom: 4px; }
+  .welcome-sub { font-size: 0.82rem; color: var(--mist); }
+
+  /* ── 消息气泡 ── */
   .msg {
-    max-width: 78%;
-    padding: 10px 16px;
-    border-radius: 16px;
-    line-height: 1.65;
-    font-size: 0.92rem;
-    animation: fadeIn 0.3s ease-out;
+    max-width: 82%;
+    padding: 11px 16px;
+    line-height: 1.7;
+    font-size: 0.9rem;
+    animation: msgIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
     word-break: break-word;
   }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
   }
 
+  /* 用户消息 */
   .msg.user {
     align-self: flex-end;
-    background: linear-gradient(135deg, var(--accent-dim), #c06050);
+    background: linear-gradient(140deg, #c47260 0%, #b35a48 100%);
     color: #fff;
-    border-bottom-right-radius: 6px;
+    border-radius: 18px 18px 5px 18px;
+    box-shadow: 0 2px 12px rgba(180,90,72,0.2);
+    margin-left: 40px;
   }
 
+  /* AI 消息 */
   .msg.assistant {
     align-self: flex-start;
-    background: var(--bg-surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-bottom-left-radius: 6px;
+    background: var(--moss);
+    color: var(--dew);
+    border-radius: 18px 18px 18px 5px;
+    border: 1px solid rgba(255,255,255,0.04);
+    box-shadow: var(--shadow-sm);
+    margin-right: 40px;
   }
 
-  .msg.tool-info {
+  /* 工具消息 */
+  .msg.tool {
     align-self: flex-start;
-    background: var(--tool-bg);
-    color: var(--text-dim);
-    border: 1px solid var(--tool-border);
-    border-radius: 10px;
+    display: flex; align-items: flex-start; gap: 8px;
+    background: transparent;
+    color: var(--mist);
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.78rem;
-    padding: 8px 14px;
+    font-size: 0.75rem;
+    padding: 6px 0;
     max-width: 70%;
+    animation: toolIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
+  @keyframes toolIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .msg.tool .tool-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0; margin-top: 5px;
+  }
+  .msg.tool.tool-start .tool-dot {
+    background: var(--sage);
+    box-shadow: 0 0 6px var(--sage-dim);
+    animation: toolPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes toolPulse {
+    0%, 100% { box-shadow: 0 0 4px var(--sage-dim); }
+    50% { box-shadow: 0 0 12px var(--sage); }
+  }
+  .msg.tool.tool-end .tool-dot { background: var(--petal); }
+  .msg.tool.tool-error .tool-dot { background: #e05555; }
 
-  .msg.tool-info .icon {
-    display: inline-block;
-    margin-right: 6px;
+  .msg.tool .tool-label {
+    color: var(--mist-dim);
+    margin-right: 4px;
   }
 
   /* ── 输入区 ── */
-  #input-area {
-    position: relative;
-    z-index: 1;
-    padding: 14px 24px 18px;
-    background: var(--bg-surface);
-    border-top: 1px solid var(--border);
-    display: flex;
-    gap: 10px;
+  .input-bar {
+    position: relative; z-index: 2;
+    padding: 12px 16px 16px;
+    background: linear-gradient(0deg, var(--leaf) 0%, rgba(20,28,24,0.97) 100%);
+    border-top: 1px solid rgba(255,255,255,0.04);
+    backdrop-filter: blur(12px);
     flex-shrink: 0;
   }
-
-  #input {
+  .input-wrap {
+    display: flex; gap: 8px;
+    background: var(--bark);
+    border: 1px solid var(--stone);
+    border-radius: 16px;
+    padding: 4px;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+  .input-wrap:focus-within {
+    border-color: rgba(232,146,124,0.3);
+    box-shadow: 0 0 0 3px var(--glow-petal);
+  }
+  .input-wrap textarea {
     flex: 1;
-    padding: 12px 18px;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    color: var(--text);
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    color: var(--dew);
     font-family: 'Noto Serif SC', serif;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     resize: none;
     outline: none;
-    transition: border-color 0.2s;
     max-height: 120px;
+    line-height: 1.5;
   }
-
-  #input:focus {
-    border-color: var(--accent-dim);
-  }
-
-  #input::placeholder {
-    color: var(--text-dim);
-    opacity: 0.5;
-  }
-
-  #send {
-    padding: 12px 22px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+  .input-wrap textarea::placeholder { color: var(--mist-dim); opacity: 0.6; }
+  .input-wrap button {
+    padding: 10px 18px;
+    background: linear-gradient(135deg, var(--petal), var(--petal-dim));
     color: #fff;
     border: none;
-    border-radius: 14px;
+    border-radius: 13px;
     font-family: 'Noto Serif SC', serif;
-    font-size: 0.9rem;
-    font-weight: 600;
+    font-size: 0.85rem; font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.15s;
+    transition: all 0.2s;
     flex-shrink: 0;
+    align-self: flex-end;
   }
+  .input-wrap button:hover { filter: brightness(1.08); }
+  .input-wrap button:active { transform: scale(0.95); }
 
-  #send:hover {
-    opacity: 0.9;
-  }
-
-  #send:active {
-    transform: scale(0.96);
+  /* ── 提示文字 ── */
+  .input-hint {
+    text-align: center;
+    font-size: 0.68rem; color: var(--mist-dim);
+    margin-top: 6px; opacity: 0.6;
   }
 
   /* ── 滚动条 ── */
-  #chat::-webkit-scrollbar {
-    width: 5px;
-  }
-  #chat::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  #chat::-webkit-scrollbar-thumb {
-    background: var(--border);
+  .chat::-webkit-scrollbar { width: 4px; }
+  .chat::-webkit-scrollbar-track { background: transparent; }
+  .chat::-webkit-scrollbar-thumb {
+    background: var(--stone);
     border-radius: 10px;
+  }
+  .chat::-webkit-scrollbar-thumb:hover { background: var(--mist-dim); }
+
+  /* ── 移动端适配 ── */
+  @media (max-width: 640px) {
+    .header { padding: 10px 14px; }
+    .header-title { font-size: 0.9rem; }
+    .chat { padding: 14px 10px 6px; gap: 4px; }
+    .msg { max-width: 90%; font-size: 0.85rem; padding: 10px 14px; }
+    .msg.user { margin-left: 16px; border-radius: 16px 16px 4px 16px; }
+    .msg.assistant { margin-right: 16px; border-radius: 16px 16px 16px 4px; }
+    .input-bar { padding: 10px 10px 14px; }
+    .input-wrap textarea { font-size: 0.82rem; }
   }
 </style>
 </head>
 <body>
 
-<div id="header">
-  <div class="logo">&#x1f338;</div>
-  <h1>Camelia Studio</h1>
-  <span class="badge">v0.0.3-dev</span>
-</div>
+<div class="bg-layer"></div>
 
-<div id="chat"></div>
+<header class="header">
+  <div class="header-logo">&#x1f338;</div>
+  <span class="header-title">Camelia Studio</span>
+  <span class="header-badge">dev</span>
+  <div class="header-status"></div>
+</header>
 
-<div id="input-area">
-  <textarea id="input" rows="1" placeholder="输入消息，Enter 发送..." onkeydown="onKey(event)"></textarea>
-  <button id="send" onclick="send()">发送</button>
+<main class="chat" id="chat">
+  <div class="welcome" id="welcome">
+    <div class="welcome-icon">&#x1f338;</div>
+    <div class="welcome-title">Camelia Studio</div>
+    <div class="welcome-sub">AI 编程助手，随时待命</div>
+  </div>
+</main>
+
+<div class="input-bar">
+  <div class="input-wrap">
+    <textarea id="input" rows="1" placeholder="输入消息，Enter 发送..." onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
+    <button onclick="send()">发送</button>
+  </div>
+  <div class="input-hint">Shift + Enter 换行</div>
 </div>
 
 <script>
 const ws = new WebSocket("ws://" + location.host + "/ws");
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
+const welcome = document.getElementById("welcome");
+
+function hideWelcome() {
+  if (welcome) { welcome.style.display = 'none'; }
+}
 
 function addMsg(role, text) {
+  hideWelcome();
   const div = document.createElement("div");
-  div.className = "msg " + role;
-  div.textContent = text;
+  if (role === "user") {
+    div.className = "msg user";
+    div.textContent = text;
+  } else if (role === "assistant") {
+    div.className = "msg assistant";
+    div.textContent = text;
+  } else if (role.startsWith("tool-")) {
+    div.className = "msg tool " + role;
+    const dot = document.createElement("span");
+    dot.className = "tool-dot";
+    const content = document.createElement("span");
+    content.textContent = text;
+    div.appendChild(dot);
+    div.appendChild(content);
+  }
   chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
+  smoothScroll();
+}
+
+function smoothScroll() {
+  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
 }
 
 ws.onmessage = e => {
   const event = JSON.parse(e.data);
   if (event.type === "tool_start") {
-    addMsg("tool-info", "🔧 正在调用 " + event.name + "...");
+    addMsg("tool-tool-start", "正在调用 " + event.name + "...");
   } else if (event.type === "tool_end") {
     const preview = (event.result || "").slice(0, 80);
-    addMsg("tool-info", "✅ " + event.name + " → " + preview);
+    addMsg("tool-tool-end", event.name + " → " + preview);
   } else if (event.type === "text") {
     addMsg("assistant", event.content);
   } else if (event.type === "error") {
-    addMsg("tool-info", "❌ " + event.content);
+    addMsg("tool-tool-error", event.content);
   }
 };
 
@@ -267,8 +377,8 @@ function send() {
   addMsg("user", text);
   ws.send(JSON.stringify({ content: text }));
   input.value = "";
-  input.style.height = "auto";
-  chat.scrollTop = chat.scrollHeight;
+  autoResize(input);
+  smoothScroll();
 }
 
 function onKey(e) {
@@ -276,6 +386,11 @@ function onKey(e) {
     e.preventDefault();
     send();
   }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 </script>
 
