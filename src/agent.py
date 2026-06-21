@@ -159,7 +159,6 @@ def execute_tool(name, args):           # 执行工具
 
 
 # --- 主程序 ---
-
 SYSTEM = "你是编程助手，用中文回复，简洁。"
 
 if __name__ == "__main__":

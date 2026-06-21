@@ -3,7 +3,6 @@
 受 [Hermes Studio](https://github.com/EKKOLearnAI/hermes-studio) 启发，自建的本地 AI Agent 平台。
 
 > **Camelia** = 山茶花。花语：理想、谦逊、坚韧。
-> 寒冬开花，正如在四非院校坚持深耕嵌入式的每一天。
 
 ## 架构
 
