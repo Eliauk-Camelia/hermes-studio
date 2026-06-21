@@ -432,8 +432,11 @@ ws.onmessage = e => {
     streamDiv.textContent += event.content;
     chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
   } else if (event.type === "text") {
-    streamDiv = null;  // 流式结束，后续新消息用新 div
-    addMsg("assistant", event.content);
+    // 如果已有流式 div，不再新建；否则创建
+    if (!streamDiv) {
+      addMsg("assistant", event.content);
+    }
+    streamDiv = null;
   } else if (event.type === "error") {
     streamDiv = null;
     addMsg("tool-tool-error", event.content);
