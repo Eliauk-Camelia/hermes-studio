@@ -135,9 +135,24 @@ def execute_tool(name, args):           # 执行工具
     if name == "get_time":              # 获取当前时间
         from datetime import datetime  
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")     # 返回当前时间
-    elif name == "calc":                # 计算数学表达式
+    elif name == "calc":
+        import ast, operator
+        _OPS = {
+            ast.Add: operator.add, ast.Sub: operator.sub,
+            ast.Mult: operator.mul, ast.Div: operator.truediv,
+            ast.Pow: operator.pow, ast.USub: operator.neg,
+        }
+        def _eval(node):
+            if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+                return node.value
+            if isinstance(node, ast.BinOp):
+                return _OPS[type(node.op)](_eval(node.left), _eval(node.right))
+            if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+                return -_eval(node.operand)
+            raise ValueError("不支持的操作")
         try:
-            return str(eval(args["expression"]))
+            tree = ast.parse(args["expression"], mode="eval")
+            return str(_eval(tree.body))
         except Exception as e:
             return f"计算出错: {e}"
     return f"未知工具: {name}"
