@@ -1,74 +1,45 @@
 # Hermes Studio
 
-本地 AI Agent 平台 — 受 [Hermes Studio](https://github.com/EKKOLearnAI/hermes-studio) 启发。
+自建的本地 AI Agent 平台。
 
 ## 架构
 
 ```
-┌──────────────────────────────────────────────────┐
-│                   Adapters (多端)                 │
-│  CLI │ Web UI │ Telegram Bot │ ... (按需扩展)      │
-└──────────────────────┬───────────────────────────┘
-                       │ WebSocket / HTTP
-┌──────────────────────▼───────────────────────────┐
-│                 Message Bus (bus/)                │
-│  FastAPI + WebSocket │ Protocol │ Session 管理    │
-└──────────────────────┬───────────────────────────┘
-                       │
-┌──────────────────────▼───────────────────────────┐
-│                 Agent Core (core/)                │
-│  Agent Loop │ LLM Client │ Tool Registry │ Memory │
-└──────────────────────────────────────────────────┘
+src/agent.py  ──  单文件 Agent，自包含
+    │
+    ├── call_llm()      给 LLM 打电话（OpenAI 兼容 API）
+    ├── agent_loop()    Agent 大脑循环（Tool Calling）
+    └── execute_tool()  工具执行器
 ```
 
 ## 快速开始
 
 ```bash
-# 安装依赖
+# 1. 安装依赖
 pip install -r requirements.txt
 
-# 设置 API Key (OpenAI 兼容)
-export OPENAI_API_KEY="sk-xxx"
+# 2. 配置 .env
+cp .env.example .env
+# 编辑 .env，填入 DeepSeek API Key
 
-# 可选：使用 Ollama 本地模型
-export OPENAI_BASE_URL="http://localhost:11434/v1"
-export LLM_MODEL="qwen2.5:7b"
-
-# 启动 Web 服务
-python main.py
-
-# 或终端模式
-python main.py --cli
+# 3. 运行
+python src/agent.py
 ```
 
-## 技术栈
+## 环境变量
 
-- **Agent 引擎**: Python asyncio
-- **消息总线**: FastAPI + WebSocket
-- **LLM**: OpenAI 兼容 API (OpenAI / Ollama / DeepSeek / Groq ...)
-- **存储**: JSON 文件 (阶段 1)
+| 变量 | 说明 | 默认值 |
+|---|---|---|
+| `OPENAI_API_KEY` | API 密钥（必填） | - |
+| `OPENAI_BASE_URL` | API 地址 | `https://api.deepseek.com/v1` |
+| `LLM_MODEL` | 模型名 | `deepseek-chat` |
 
-## 项目结构
+## 路线图
 
-```
-├── core/           # Agent 引擎（平台无关）
-│   ├── agent.py    # Agent 主循环
-│   ├── llm.py      # LLM 适配器
-│   ├── memory.py   # 对话记忆
-│   └── tools.py    # Tool 注册引擎
-├── bus/            # 消息总线
-│   ├── server.py   # FastAPI + WebSocket
-│   └── protocol.py # 消息协议
-├── adapters/       # 平台适配器
-│   ├── cli.py      # 终端客户端
-│   └── web/        # Web 前端
-├── hardware/       # 硬件控制（阶段 2）
-├── main.py         # 入口
-└── requirements.txt
-```
-
-## 开发路线
-
-- [x] 阶段 1: Agent 骨架 + CLI + Web 界面
-- [ ] 阶段 2: MSPM0/STM32 硬件控制 Tool
-- [ ] 阶段 3: 多端互通 (Telegram Bot / 微信)
+- [x] v0.1.0 Agent 核心循环（Tool Calling 引擎）
+- [ ] v0.2.0 Web 聊天界面（FastAPI + WebSocket）
+- [ ] v0.3.0 文件系统工具（读写文件、执行命令）
+- [ ] v0.4.0 硬件控制（MSPM0 / STM32 串口通信）
+- [ ] v0.5.0 多端互通（CLI + Web + Telegram）
+- [ ] v0.6.0 对话记忆持久化
+- [ ] v1.0.0 可扩展工具插件系统
