@@ -19,15 +19,15 @@ async def index():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    messages = [{"role": "system", "content": "你是编程助手..."}] 
     while True:
-        data = await websocket.receive_text()
-        msg = json.loads(data)
-        messages = [
-            {"role": "system", "content": "你是编程助手，用中文回复，简洁。"},
-            {"role": "user", "content": msg["content"]},
-        ]
-        for event in agent_loop(messages, TOOLS):
-            await websocket.send_text(json.dumps(event))
+      data = await websocket.receive_text()
+      msg = json.loads(data)
+      messages.append({"role": "user", "content": msg["content"]})  # ← 追加，不是新建
+      for event in agent_loop(messages, TOOLS):
+          await websocket.send_text(json.dumps(event))
+          if event["type"] == "text":
+              messages.append({"role": "assistant", "content": event["content"]})
 
 
 if __name__ == "__main__":
