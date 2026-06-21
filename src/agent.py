@@ -78,8 +78,9 @@ def agent_loop(messages, tools):
             for tc in msg.tool_calls:
                 name = tc.function.name
                 args = json.loads(tc.function.arguments)
+                yield {"type":"tool_start","name":name}
                 result = execute_tool(name, args)               # 执行工具
-                print(f"[工具 {tc.function.name}]: {result}")
+                yield {"type": "tool_end", "name": name, "result": result}
                  # 消息 1
                 messages.append({
                     "role": "assistant",
@@ -98,7 +99,8 @@ def agent_loop(messages, tools):
                 })   # 把工具结果加回去
             continue  # 继续循环
         else:
-            return msg.content
+            yield {"type": "text", "content": msg.content}   # ← 最后才吐文字
+            return 
 
 # ============================================================
 # 以下是测试代码，你不需要改
@@ -181,5 +183,10 @@ if __name__ == "__main__":
             {"role": "system", "content": SYSTEM},
             {"role": "user", "content": user_input},
         ]
-        reply = agent_loop(messages, TOOLS)  # ← 你写的函数
-        print(f"AI: {reply}")
+        for event in agent_loop(messages, TOOLS):
+            if event["type"] == "tool_start":
+                print(f"\n🔧 正在调用 {event['name']}...")
+            elif event["type"] == "tool_end":
+                print(f"✅ {event['name']} 完成")
+            elif event["type"] == "text":
+                print(f"AI: {event['content']}")
