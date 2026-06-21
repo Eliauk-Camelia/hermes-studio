@@ -13,6 +13,7 @@ Agent 核心：LLM 调用 + Tool Calling 循环 + 工具执行器。
 import os
 import json
 import ast
+import asyncio
 import operator
 import subprocess
 from pathlib import Path
@@ -72,7 +73,7 @@ def stream_llm(messages: list[dict], tools: list[dict] | None = None):
 #  Agent 循环
 # ══════════════════════════════════════════════════
 
-def agent_loop(messages: list[dict], tools: list[dict]):
+async def agent_loop(messages: list[dict], tools: list[dict]):
     """Agent 主循环 — yield 生成器，逐步推送事件。
 
     流程：
@@ -133,9 +134,10 @@ def agent_loop(messages: list[dict], tools: list[dict]):
         if msg.content:
             # 逐词 yield，模拟流式（免额外 API 调用的零成本方案）
             text = msg.content
-            chunk_size = 3  # 每次输出 3 个字符
+            chunk_size = 3
             for i in range(0, len(text), chunk_size):
                 yield {"type": "stream", "content": text[i:i+chunk_size]}
+                await asyncio.sleep(0.02)  # 微延时，让前端有时间渲染
             yield {"type": "text", "content": text}
             return
 
@@ -347,8 +349,8 @@ def execute_tool(name: str, args: dict) -> str:
 #  CLI 模式 (python agent.py)
 # ══════════════════════════════════════════════════
 
-if __name__ == "__main__":
-    # 启动自检：确认 API 连通
+async def cli_main():
+    """CLI 模式入口"""
     msg = call_llm([{"role": "user", "content": "hello"}])
     print(f"测试结果: {msg.content}")
 
@@ -367,10 +369,15 @@ if __name__ == "__main__":
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_input},
         ]
-        for event in agent_loop(messages, TOOLS):
+        async for event in agent_loop(messages, TOOLS):
             if event["type"] == "tool_start":
                 print(f"\n🔧 正在调用 {event['name']}...")
             elif event["type"] == "tool_end":
                 print(f"✅ {event['name']} 完成")
+            elif event["type"] == "stream":
+                print(event["content"], end="", flush=True)
             elif event["type"] == "text":
-                print(f"AI: {event['content']}")
+                print()
+
+if __name__ == "__main__":
+    asyncio.run(cli_main())

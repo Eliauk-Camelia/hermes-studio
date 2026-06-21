@@ -147,7 +147,7 @@ async def websocket_endpoint(websocket: WebSocket):
         messages.append({"role": "user", "content": msg["content"]})
 
         try:
-            for event in agent_loop(messages, TOOLS):
+            async for event in agent_loop(messages, TOOLS):
                 await websocket.send_text(json.dumps(event))
                 if event["type"] == "text":
                     messages.append({"role": "assistant", "content": event["content"]})
