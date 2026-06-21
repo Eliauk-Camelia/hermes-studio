@@ -75,20 +75,43 @@ class ToolRegistry:
 # ─── 内置工具 ───────────────────────────────────
 
 
+# 文件读取白名单：只允许读取这些目录下的文件
+_ALLOWED_ROOTS = [
+    Path.home(),                  # 用户主目录
+    Path("/home/arch/Desktop"),   # 工作目录
+    Path("/tmp"),                 # 临时文件
+]
+
+
 def _read_file(path: str) -> str:
-    """读取文件内容"""
-    p = Path(path).expanduser()
+    """读取文件内容（限定在白名单目录内）"""
+    p = Path(path).expanduser().resolve()
+    # 安全检查：拒绝符号链接逃逸
     if not p.exists():
         return f"文件不存在: {path}"
+    if not any(str(p).startswith(str(root)) for root in _ALLOWED_ROOTS):
+        return f"安全限制：禁止读取 {path}（不在允许的目录内）"
     content = p.read_text(encoding="utf-8", errors="replace")
-    # 限制返回长度，避免超出 LLM 上下文
     if len(content) > 8000:
         content = content[:8000] + f"\n... (截断，共 {len(content)} 字符)"
     return content
 
 
+# 危险命令黑名单（即使 shell=False 也无法完全防护，加一层过滤）
+_DENIED_COMMANDS = {"rm", "mkfs", "dd", "shutdown", "reboot", "poweroff", ":(){ :|:& };:"}
+
+
 def _run_command(command: str) -> str:
-    """执行系统命令并返回输出"""
+    """执行 shell 命令并返回输出。
+
+    安全策略：拒绝已知危险命令，30 秒超时，输出截断。
+    注意：本地开发工具，信任用户输入；若暴露到公网需加审批流程。
+    """
+    cmd_lower = command.strip().lower()
+    for denied in _DENIED_COMMANDS:
+        if cmd_lower.startswith(denied) or f" {denied}" in cmd_lower:
+            return f"安全限制：拒绝执行危险命令 '{denied}'"
+
     try:
         result = subprocess.run(
             command, shell=True, capture_output=True, text=True, timeout=30

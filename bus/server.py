@@ -80,10 +80,12 @@ async def websocket_chat(ws: WebSocket):
                     async for event in agent.run(msg.content, session_id):
                         await ws.send_json(_event_to_json(event, session_id))
                 except Exception as e:
+                    import traceback
+                    traceback.print_exc()  # 错误详情只打印在服务端控制台
                     await ws.send_json({
                         "type": "error",
                         "session_id": session_id,
-                        "content": f"Agent 执行失败: {e}",
+                        "content": "Agent 执行失败，请检查 API 密钥配置或查看服务端日志",
                     })
 
             elif msg.type == MessageType.SYSTEM:
@@ -257,7 +259,7 @@ function newSession() {
 </html>"""
 
 
-def run_server(host: str = "0.0.0.0", port: int = 8648):
+def run_server(host: str = "127.0.0.1", port: int = 8648):
     """启动消息总线服务"""
     import uvicorn
     uvicorn.run(app, host=host, port=port, log_level="info")

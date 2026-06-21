@@ -25,7 +25,7 @@ def main():
     parser = argparse.ArgumentParser(description="Hermes Studio — 本地 AI Agent")
     parser.add_argument("--cli", action="store_true", help="终端模式")
     parser.add_argument("--port", type=int, default=8648, help="Web 服务端口（默认 8648）")
-    parser.add_argument("--host", default="0.0.0.0", help="监听地址")
+    parser.add_argument("--host", default="127.0.0.1", help="监听地址（默认仅本地）")
     args = parser.parse_args()
 
     if args.cli:
