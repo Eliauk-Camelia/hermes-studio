@@ -256,6 +256,8 @@ ws.onmessage = e => {
     addMsg("tool-info", "✅ " + event.name + " → " + preview);
   } else if (event.type === "text") {
     addMsg("assistant", event.content);
+  } else if (event.type === "error") {
+    addMsg("tool-info", "❌ " + event.content);
   }
 };
 
