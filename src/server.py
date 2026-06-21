@@ -1,3 +1,10 @@
+"""
+Camelia Studio — Web 服务 & 会话管理
+=====================================
+FastAPI 服务：静态文件 + HTTP API + WebSocket 聊天。
+会话持久化到 ~/.camelia-studio/sessions/ (JSON 文件)。
+"""
+
 from agent import agent_loop, TOOLS
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import FileResponse

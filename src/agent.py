@@ -1,194 +1,210 @@
 """
-AI Agent 骨架 — 你来把它变活。
+Camelia Studio — AI Agent 引擎
+================================
+Agent 核心：LLM 调用 + Tool Calling 循环 + 工具执行器。
+被 server.py (WebSocket) 和 CLI 模式 (__main__) 共用。
 
-运行方式：
-    source ../.env && python agent.py
-
-你要完成的 3 个函数在下面，每个 <10 行。
+架构：
+    call_llm()     → 给 DeepSeek 发 HTTP 请求，拿回回复
+    agent_loop()   → yield 生成器：调 LLM → 执行工具 → 循环
+    execute_tool() → if/elif 路由到具体工具实现
 """
 
 import os
 import json
+import ast
+import operator
 import subprocess
 from pathlib import Path
+from datetime import datetime
+
 from openai import OpenAI
 from dotenv import load_dotenv
-from pathlib import Path
 
-# 自动加载 .env（不再需要手动 source）
+# ─── 启动：加载配置 ────────────────────────────
+
 _env = Path(__file__).parent.parent / ".env"
 if _env.exists():
     load_dotenv(_env)
 
-# 全局 LLM 客户端 — 整个文件共享这一个实例
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
     base_url=os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com/v1"),
 )
 
-# ============================================================
-# TODO 1: 完成 call_llm()
-# ============================================================
-# 任务：调用 DeepSeek API，发送消息，返回回复
-#
-# 提示：
-#   - 用 client.chat.completions.create()
-#   - model="deepseek-chat"
-#   - 参数: messages, tools (如果传了 tools)
-#   - tools 参数格式: tools=[{"type":"function", "function":{...}}, ...]
-#   - 返回 response.choices[0].message
-#
-# 写到下面这里 ↓
-def call_llm(messages, tools=None):
-    kwargs = {"model": "deepseek-chat", "messages": messages}          
+SYSTEM_PROMPT = "你是编程助手，用中文回复，简洁。"
+
+
+# ══════════════════════════════════════════════════
+#  LLM 调用层
+# ══════════════════════════════════════════════════
+
+def call_llm(messages: list[dict], tools: list[dict] | None = None):
+    """调用 DeepSeek API (OpenAI 兼容)，返回 message 对象。
+
+    message.content   → 文本回复 (可能为 None)
+    message.tool_calls → 工具调用请求列表 (可能为 None)
+    """
+    kwargs = {"model": "deepseek-chat", "messages": messages}
     if tools:
         kwargs["tools"] = tools
     response = client.chat.completions.create(**kwargs)
     return response.choices[0].message
 
-# ============================================================
-# TODO 2: 完成 agent_loop()
-# ============================================================
-# 任务：实现 Agent 的 while 循环
-#
-# 逻辑（伪代码）：
-#   for _ in range(10):
-#       msg = call_llm(messages, tools)
-#       if msg.tool_calls:
-#           for tc in msg.tool_calls:
-#               result = execute_tool(tc.function.name, json.loads(tc.function.arguments))
-#               print(f"[工具 {tc.function.name}]: {result}")
-#               messages.append(...)   # 把工具结果加回去
-#           continue  # 继续循环
-#       else:
-#           return msg.content
-#
-# 提示：
-#   - 工具调用后要往 messages 里加两条：
-#     1. assistant 消息（含 tool_calls）
-#     2. tool 消息（含 tool_call_id + 结果）
-#   - OpenAI tool call 的消息格式：
-#     {"role":"assistant", "content":None, "tool_calls":[{"id":tc.id, "type":"function", "function":{...}}]}
-#     {"role":"tool", "tool_call_id":tc.id, "content":result}
-#
-# 写到下面这里 ↓
 
-def agent_loop(messages, tools):
-    for _ in range(10):
+# ══════════════════════════════════════════════════
+#  Agent 循环
+# ══════════════════════════════════════════════════
+
+def agent_loop(messages: list[dict], tools: list[dict]):
+    """Agent 主循环 — yield 生成器，逐步推送事件。
+
+    流程：
+        1. 调 LLM
+        2. 如果 LLM 返回 tool_call → 执行工具 → 结果追加到 messages → 回到 1
+        3. 如果 LLM 返回文本 → yield 文本 → 结束
+
+    yield 事件格式：
+        {"type": "tool_start", "name": str}
+        {"type": "tool_end",   "name": str, "result": str}
+        {"type": "text",       "content": str}
+    """
+    for _ in range(10):  # 最多 10 轮工具调用，防止死循环
         msg = call_llm(messages, tools)
+
+        # ── 有工具调用：执行 → 追加到对话 → 继续 ──
         if msg.tool_calls:
+            tool_call_entries = []
             for tc in msg.tool_calls:
                 name = tc.function.name
                 args = json.loads(tc.function.arguments)
-                yield {"type":"tool_start","name":name}
-                result = execute_tool(name, args)               # 执行工具
+
+                yield {"type": "tool_start", "name": name}
+
+                result = execute_tool(name, args)
+
                 yield {"type": "tool_end", "name": name, "result": result}
-                 # 消息 1
-                messages.append({
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [{
-                        "id": tc.id,
-                        "type": "function",
-                        "function": {"name": name, "arguments": json.dumps(args, ensure_ascii=False)}
-                    }]
+
+                # 收集 assistant 的工具调用声明（稍后统一插入 messages）
+                tool_call_entries.append({
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": name,
+                        "arguments": json.dumps(args, ensure_ascii=False),
+                    },
                 })
-                # 消息 2
+                # 工具结果直接追加
                 messages.append({
                     "role": "tool",
                     "tool_call_id": tc.id,
                     "content": result,
-                })   # 把工具结果加回去
-            continue  # 继续循环
-        else:
-            yield {"type": "text", "content": msg.content}   # ← 最后才吐文字
+                })
+
+            # assistant 声明插在工具结果之前
+            messages.insert(
+                -len(msg.tool_calls),
+                {
+                    "role": "assistant",
+                    "content": msg.content or None,
+                    "tool_calls": tool_call_entries,
+                },
+            )
+            continue  # 回到循环开头，LLM 看到工具结果后继续
+
+        # ── 纯文本回复：结束 ──
+        if msg.content:
+            yield {"type": "text", "content": msg.content}
             return
-# ============================================================
-# 以下是测试代码，你不需要改
-# ============================================================
 
-# 路径安全检查：只允许在指定目录内操作
-_SAFE_ROOTS = [str(Path.home()), "/home/arch/Desktop", "/tmp"]
-
-def _check_path(path_str: str) -> Path | str:
-    p = Path(path_str).expanduser().resolve()
-    if any(str(p).startswith(r + os.sep) or str(p) == r for r in _SAFE_ROOTS):
-        return p
-    return f"安全限制: 禁止访问 {path_str} (仅允许 {', '.join(_SAFE_ROOTS)})"
+        # 既无文本也无工具调用，结束
+        return
 
 
-# 内置工具
+# ══════════════════════════════════════════════════
+#  工具定义 (OpenAI Function Calling 格式)
+# ══════════════════════════════════════════════════
+
 TOOLS = [
+    # ── get_time：获取当前时间 ──
     {
         "type": "function",
         "function": {
             "name": "get_time",
-            "description": "获取当前时间",
+            "description": "获取当前日期和时间",
             "parameters": {"type": "object", "properties": {}, "required": []},
-        }
+        },
     },
+    # ── calc：安全数学计算（AST 解析，禁止任意代码执行） ──
     {
         "type": "function",
         "function": {
             "name": "calc",
-            "description": "计算数学表达式",
+            "description": "计算数学表达式，支持 + - * / ** 和括号",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "expression": {"type": "string", "description": "数学表达式，如 '3*4+2'"}
+                    "expression": {
+                        "type": "string",
+                        "description": "数学表达式，如 '3*4+2' 或 '2**10'",
+                    }
                 },
                 "required": ["expression"],
             },
-        }
+        },
     },
+    # ── read_file：读取文件内容 ──
     {
         "type": "function",
         "function": {
             "name": "read_file",
-            "description": "读取文件内容。用于查看代码、配置、日志等文本文件。",
+            "description": "读取文本文件内容，用于查看代码、配置、日志等",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "path": {"type": "string", "description": "文件的绝对路径或相对路径"}
+                    "path": {"type": "string", "description": "文件路径（绝对或相对）"}
                 },
                 "required": ["path"],
             },
-        }
+        },
     },
+    # ── write_file：写入文件 ──
     {
         "type": "function",
         "function": {
             "name": "write_file",
-            "description": "将内容写入文件。用于创建或覆盖文件。",
+            "description": "创建或覆盖文件，自动创建父目录",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "path": {"type": "string", "description": "文件的绝对路径或相对路径"},
+                    "path": {"type": "string", "description": "文件路径"},
                     "content": {"type": "string", "description": "要写入的内容"},
                 },
                 "required": ["path", "content"],
             },
-        }
+        },
     },
+    # ── list_dir：列出目录内容 ──
     {
         "type": "function",
         "function": {
             "name": "list_dir",
-            "description": "列出目录中的文件和子目录。",
+            "description": "列出目录中的文件和子目录，目录优先排序",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "path": {"type": "string", "description": "目录路径，默认为当前目录"}
+                    "path": {"type": "string", "description": "目录路径，默认当前目录"}
                 },
                 "required": [],
             },
-        }
+        },
     },
+    # ── run_command：执行 shell 命令 ──
     {
         "type": "function",
         "function": {
             "name": "run_command",
-            "description": "在终端执行 shell 命令并返回输出。用于编译、运行脚本、git 操作等。",
+            "description": "在终端执行 shell 命令，用于编译、git、运行脚本等。支持管道和重定向。",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -196,22 +212,42 @@ TOOLS = [
                 },
                 "required": ["command"],
             },
-        }
+        },
     },
 ]
 
 
-def execute_tool(name, args):           # 执行工具
-    if name == "get_time":              # 获取当前时间
-        from datetime import datetime  
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")     # 返回当前时间
+# ══════════════════════════════════════════════════
+#  工具执行器
+# ══════════════════════════════════════════════════
+
+# 文件系统安全：仅允许操作以下目录
+_SAFE_ROOTS = [str(Path.home()), "/home/arch/Desktop", "/tmp"]
+
+
+def _check_path(path_str: str) -> Path | str:
+    """路径安全校验：resolve() 防 ../ 逃逸，白名单防越权访问。"""
+    p = Path(path_str).expanduser().resolve()
+    if any(str(p).startswith(r + os.sep) or str(p) == r for r in _SAFE_ROOTS):
+        return p
+    return f"安全限制: 禁止访问 {path_str}"
+
+
+def execute_tool(name: str, args: dict) -> str:
+    """根据工具名路由到具体实现，返回执行结果字符串。"""
+
+    # ── get_time ──
+    if name == "get_time":
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # ── calc (AST 安全求值，拒绝任意代码) ──
     elif name == "calc":
-        import ast, operator
         _OPS = {
             ast.Add: operator.add, ast.Sub: operator.sub,
             ast.Mult: operator.mul, ast.Div: operator.truediv,
             ast.Pow: operator.pow, ast.USub: operator.neg,
         }
+
         def _eval(node):
             if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
                 return node.value
@@ -220,29 +256,41 @@ def execute_tool(name, args):           # 执行工具
             if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
                 return -_eval(node.operand)
             raise ValueError("不支持的操作")
+
         try:
             tree = ast.parse(args["expression"], mode="eval")
             return str(_eval(tree.body))
         except Exception as e:
             return f"计算出错: {e}"
+
+    # ── read_file ──
     elif name == "read_file":
         p = _check_path(args["path"])
-        if isinstance(p, str): return p
-        if not p.exists(): return f"文件不存在: {args['path']}"
+        if isinstance(p, str):
+            return p
+        if not p.exists():
+            return f"文件不存在: {args['path']}"
         content = p.read_text(encoding="utf-8", errors="replace")
         if len(content) > 8000:
             content = content[:8000] + f"\n... (截断，共 {len(content)} 字符)"
         return content
+
+    # ── write_file ──
     elif name == "write_file":
         p = _check_path(args["path"])
-        if isinstance(p, str): return p
+        if isinstance(p, str):
+            return p
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(args["content"], encoding="utf-8")
         return f"已写入: {p} ({len(args['content'])} 字符)"
+
+    # ── list_dir ──
     elif name == "list_dir":
         p = _check_path(args.get("path", "."))
-        if isinstance(p, str): return p
-        if not p.exists() or not p.is_dir(): return f"目录不存在: {p}"
+        if isinstance(p, str):
+            return p
+        if not p.exists() or not p.is_dir():
+            return f"目录不存在: {p}"
         items = sorted(p.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower()))
         lines = []
         for item in items[:100]:
@@ -253,13 +301,15 @@ def execute_tool(name, args):           # 执行工具
         if len(items) > 100:
             result += f"\n... (共 {len(items)} 项，仅显示前 100)"
         return result or "(空目录)"
+
+    # ── run_command ──
     elif name == "run_command":
         try:
-            result = subprocess.run(
+            proc = subprocess.run(
                 args["command"], shell=True, capture_output=True,
-                text=True, timeout=30
+                text=True, timeout=30,
             )
-            output = result.stdout.strip() or result.stderr.strip()
+            output = proc.stdout.strip() or proc.stderr.strip()
             if len(output) > 4000:
                 output = output[:4000] + "\n... (截断)"
             return output or "(命令无输出)"
@@ -267,14 +317,16 @@ def execute_tool(name, args):           # 执行工具
             return "命令执行超时 (30s)"
         except Exception as e:
             return f"命令执行失败: {e}"
+
     return f"未知工具: {name}"
 
 
-# --- 主程序 ---
-SYSTEM = "你是编程助手，用中文回复，简洁。"
+# ══════════════════════════════════════════════════
+#  CLI 模式 (python agent.py)
+# ══════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    # 快速测试 call_llm
+    # 启动自检：确认 API 连通
     msg = call_llm([{"role": "user", "content": "hello"}])
     print(f"测试结果: {msg.content}")
 
@@ -290,7 +342,7 @@ if __name__ == "__main__":
             break
 
         messages = [
-            {"role": "system", "content": SYSTEM},
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_input},
         ]
         for event in agent_loop(messages, TOOLS):
