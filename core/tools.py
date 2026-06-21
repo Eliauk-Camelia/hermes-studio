@@ -9,6 +9,8 @@ Tool 注册与执行引擎 — Agent 的"手"。
 
 from __future__ import annotations
 
+import os
+import shlex
 import subprocess
 import platform
 from pathlib import Path
@@ -81,15 +83,27 @@ _ALLOWED_ROOTS = [
     Path("/home/arch/Desktop"),   # 工作目录
     Path("/tmp"),                 # 临时文件
 ]
+# 安全对比：在每个根路径后加分隔符，防止 /tmp 匹配到 /tmp2/secret
+# /tmp 精确匹配 → 只允许目录本身（如 /tmp），不允许内容要加 /tmp/
+_ALLOWED_PREFIXES = [str(root) + os.sep for root in _ALLOWED_ROOTS]
+_ALLOWED_EXACT = [str(root) for root in _ALLOWED_ROOTS]
+
+
+def _is_path_allowed(p: Path) -> bool:
+    """检查路径是否在白名单内，防止路径穿越"""
+    resolved = str(p)
+    return (
+        resolved in _ALLOWED_EXACT
+        or any(resolved.startswith(prefix) for prefix in _ALLOWED_PREFIXES)
+    )
 
 
 def _read_file(path: str) -> str:
     """读取文件内容（限定在白名单目录内）"""
     p = Path(path).expanduser().resolve()
-    # 安全检查：拒绝符号链接逃逸
     if not p.exists():
         return f"文件不存在: {path}"
-    if not any(str(p).startswith(str(root)) for root in _ALLOWED_ROOTS):
+    if not _is_path_allowed(p):
         return f"安全限制：禁止读取 {path}（不在允许的目录内）"
     content = p.read_text(encoding="utf-8", errors="replace")
     if len(content) > 8000:
@@ -97,29 +111,54 @@ def _read_file(path: str) -> str:
     return content
 
 
-# 危险命令黑名单（即使 shell=False 也无法完全防护，加一层过滤）
-_DENIED_COMMANDS = {"rm", "mkfs", "dd", "shutdown", "reboot", "poweroff", ":(){ :|:& };:"}
+# 命令白名单：只允许执行这些基础命令
+# 阶段 1 开放常用开发命令；阶段 3 可改为动态配置
+_ALLOWED_COMMANDS = {
+    "ls", "cat", "head", "tail", "echo", "pwd", "whoami", "date", "uname",
+    "python", "python3", "pip", "pip3", "git", "make", "cmake", "gcc", "g++",
+    "node", "npm", "cargo", "rustc", "go", "java", "javac",
+    "grep", "find", "wc", "sort", "uniq", "diff", "file", "stat",
+    "wget", "curl", "ping", "ss", "netstat", "ip", "ifconfig",
+    "ps", "top", "htop", "df", "du", "free", "uptime",
+    "systemctl", "journalctl", "docker", "podman",
+    "ssh", "scp", "rsync", "tar", "zip", "unzip", "gzip",
+    "mkdir", "cp", "mv", "chmod", "chown", "ln",
+}
 
 
 def _run_command(command: str) -> str:
     """执行 shell 命令并返回输出。
 
-    安全策略：拒绝已知危险命令，30 秒超时，输出截断。
-    注意：本地开发工具，信任用户输入；若暴露到公网需加审批流程。
+    安全策略：
+    1. shlex 解析命令，拒绝无有效命令的输入
+    2. 白名单校验基础命令（防止 rm / dd / curl | sh 等）
+    3. shell=False 防止注入，超时 30s，输出截断
     """
-    cmd_lower = command.strip().lower()
-    for denied in _DENIED_COMMANDS:
-        if cmd_lower.startswith(denied) or f" {denied}" in cmd_lower:
-            return f"安全限制：拒绝执行危险命令 '{denied}'"
+    try:
+        tokens = shlex.split(command.strip())
+    except ValueError as e:
+        return f"命令解析失败: {e}"
+
+    if not tokens:
+        return "(空命令)"
+
+    base_cmd = os.path.basename(tokens[0])
+    if base_cmd not in _ALLOWED_COMMANDS:
+        return (
+            f"安全限制：命令 '{base_cmd}' 不在白名单中。\n"
+            f"允许的命令: {', '.join(sorted(_ALLOWED_COMMANDS))}"
+        )
 
     try:
         result = subprocess.run(
-            command, shell=True, capture_output=True, text=True, timeout=30
+            tokens, capture_output=True, text=True, timeout=30
         )
         output = result.stdout.strip() or result.stderr.strip()
         if len(output) > 4000:
             output = output[:4000] + "\n... (截断)"
         return output or "(命令无输出)"
+    except FileNotFoundError:
+        return f"命令未找到: {base_cmd}"
     except subprocess.TimeoutExpired:
         return "命令执行超时 (30s)"
     except Exception as e:
@@ -159,7 +198,7 @@ def create_builtin_registry() -> ToolRegistry:
     ))
     registry.register(Tool(
         name="run_command",
-        description="在终端执行 shell 命令并返回输出。用于编译代码、运行脚本、查看系统状态。",
+        description=f"执行 shell 命令并返回输出。仅允许白名单命令: {', '.join(sorted(_ALLOWED_COMMANDS))}",
         parameters={
             "type": "object",
             "properties": {
