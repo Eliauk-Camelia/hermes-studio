@@ -76,8 +76,15 @@ async def websocket_chat(ws: WebSocket):
                 })
 
                 # Agent 主循环 — 流式推送
-                async for event in agent.run(msg.content, session_id):
-                    await ws.send_json(_event_to_json(event, session_id))
+                try:
+                    async for event in agent.run(msg.content, session_id):
+                        await ws.send_json(_event_to_json(event, session_id))
+                except Exception as e:
+                    await ws.send_json({
+                        "type": "error",
+                        "session_id": session_id,
+                        "content": f"Agent 执行失败: {e}",
+                    })
 
             elif msg.type == MessageType.SYSTEM:
                 # 心跳
@@ -85,6 +92,8 @@ async def websocket_chat(ws: WebSocket):
 
     except WebSocketDisconnect:
         pass
+    except Exception as e:
+        print(f"[WebSocket 错误] {e}")
     finally:
         if session_id and session_id in connections:
             connections[session_id].remove(ws)
@@ -207,6 +216,9 @@ ws.onmessage = (e) => {
     const preview = msg.tool_result.slice(0, 200);
     addMsg('tool', '  → ' + preview + (msg.tool_result.length > 200 ? '...' : ''));
   } else if (msg.type === 'done') {
+    currentAssistantDiv = null;
+  } else if (msg.type === 'error') {
+    addMsg('tool', '❌ ' + msg.content);
     currentAssistantDiv = null;
   }
 };
