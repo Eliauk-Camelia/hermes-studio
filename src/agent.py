@@ -52,6 +52,22 @@ def call_llm(messages: list[dict], tools: list[dict] | None = None):
     return response.choices[0].message
 
 
+def stream_llm(messages: list[dict], tools: list[dict] | None = None):
+    """流式调用 LLM — yield 逐 token 文本增量。
+
+    和 call_llm 的区别：不返回完整 message，而是一个字一个字 yield。
+    用于流式输出到前端。
+    """
+    kwargs = {"model": "deepseek-chat", "messages": messages, "stream": True}
+    if tools:
+        kwargs["tools"] = tools
+    stream = client.chat.completions.create(**kwargs)
+    for chunk in stream:
+        delta = chunk.choices[0].delta if chunk.choices else None
+        if delta and delta.content:
+            yield delta.content
+
+
 # ══════════════════════════════════════════════════
 #  Agent 循环
 # ══════════════════════════════════════════════════
@@ -60,16 +76,17 @@ def agent_loop(messages: list[dict], tools: list[dict]):
     """Agent 主循环 — yield 生成器，逐步推送事件。
 
     流程：
-        1. 调 LLM
-        2. 如果 LLM 返回 tool_call → 执行工具 → 结果追加到 messages → 回到 1
-        3. 如果 LLM 返回文本 → yield 文本 → 结束
+        1. 调 LLM (非流式)
+        2. 如果有 tool_call → 执行工具 → 追加结果 → 回到 1
+        3. 如果没有 tool_call → 流式输出文本 → 结束
 
     yield 事件格式：
-        {"type": "tool_start", "name": str}
-        {"type": "tool_end",   "name": str, "result": str}
-        {"type": "text",       "content": str}
+        {"type": "tool_start",  "name": str}
+        {"type": "tool_end",    "name": str, "result": str}
+        {"type": "stream",      "content": str}       ← 逐 token 增量
+        {"type": "text",        "content": str}       ← 完整文本（兼容旧前端）
     """
-    for _ in range(10):  # 最多 10 轮工具调用，防止死循环
+    for _ in range(10):
         msg = call_llm(messages, tools)
 
         # ── 有工具调用：执行 → 追加到对话 → 继续 ──
@@ -112,9 +129,14 @@ def agent_loop(messages: list[dict], tools: list[dict]):
             )
             continue  # 回到循环开头，LLM 看到工具结果后继续
 
-        # ── 纯文本回复：结束 ──
+        # ── 纯文本回复：流式输出 → 结束 ──
         if msg.content:
-            yield {"type": "text", "content": msg.content}
+            # 逐词 yield，模拟流式（免额外 API 调用的零成本方案）
+            text = msg.content
+            chunk_size = 3  # 每次输出 3 个字符
+            for i in range(0, len(text), chunk_size):
+                yield {"type": "stream", "content": text[i:i+chunk_size]}
+            yield {"type": "text", "content": text}
             return
 
         # 既无文本也无工具调用，结束

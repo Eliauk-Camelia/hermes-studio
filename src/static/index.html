@@ -298,7 +298,7 @@
 <script>
 // ─── 状态 ───
 let sessionId = null;
-let currentAssistantDiv = null;
+let streamDiv = null;  // 流式输出时复用的 div
 const ws = new WebSocket("ws://" + location.host + "/ws");
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
@@ -416,12 +416,26 @@ ws.onmessage = e => {
   } else if (event.type === "session_saved") {
     loadSessionList();
   } else if (event.type === "tool_start") {
+    streamDiv = null;  // 工具开始，结束上一段流式
     addMsg("tool-tool-start", "正在调用 " + event.name + "...");
   } else if (event.type === "tool_end") {
     addMsg("tool-tool-end", event.name + " → " + (event.result || "").slice(0, 80));
+  } else if (event.type === "stream") {
+    // 流式增量：追加到同一个 div
+    const w = document.getElementById("welcome");
+    if (w) w.style.display = "none";
+    if (!streamDiv) {
+      streamDiv = document.createElement("div");
+      streamDiv.className = "msg assistant";
+      chat.appendChild(streamDiv);
+    }
+    streamDiv.textContent += event.content;
+    chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
   } else if (event.type === "text") {
+    streamDiv = null;  // 流式结束，后续新消息用新 div
     addMsg("assistant", event.content);
   } else if (event.type === "error") {
+    streamDiv = null;
     addMsg("tool-tool-error", event.content);
   }
   } catch(err) { console.error("消息处理失败:", err); }
