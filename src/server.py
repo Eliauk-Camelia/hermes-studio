@@ -135,7 +135,8 @@ async def websocket_endpoint(websocket: WebSocket):
         if msg.get("session_id") and msg["session_id"] != session_id:
             session_id = msg["session_id"]
             messages = [{"role": "system", "content": "你是编程助手，用中文回复，简洁。"}]
-            history = load_session(session_id)
+            # 加载历史，过滤掉已保存的 system 消息（避免重复）
+            history = [m for m in load_session(session_id) if m["role"] != "system"]
             messages.extend(history)
 
         if not session_id:

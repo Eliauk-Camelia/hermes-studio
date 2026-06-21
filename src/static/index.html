@@ -349,17 +349,22 @@ function escapeHtml(s) {
 }
 
 async function switchSession(id) {
-  sessionId = id;
-  chat.innerHTML = "";
-  document.getElementById("welcome").style.display = "none";
-  const res = await fetch("/api/sessions/" + id);
-  const data = await res.json();
-  data.messages.forEach(m => {
-    if (m.role === "user") addMsg("user", m.content);
-    else if (m.role === "assistant") addMsg("assistant", m.content);
-  });
-  loadSessionList();
-  chat.scrollTop = chat.scrollHeight;
+  try {
+    sessionId = id;
+    chat.innerHTML = "";
+    const w = document.getElementById("welcome");
+    if (w) w.style.display = "none";
+    const res = await fetch("/api/sessions/" + id);
+    if (!res.ok) return console.error("加载会话失败:", res.status);
+    const data = await res.json();
+    // 跳过 system 和 tool 消息，只显示用户和助手的对话
+    data.messages.forEach(m => {
+      if (m.role === "user") addMsg("user", m.content);
+      else if (m.role === "assistant") addMsg("assistant", m.content);
+    });
+    loadSessionList();
+    chat.scrollTop = chat.scrollHeight;
+  } catch(err) { console.error("切换会话失败:", err); }
 }
 
 async function toggleStar(id, btn) {
