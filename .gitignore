@@ -7,4 +7,5 @@ venv/
 *.egg-info/
 dist/
 .history/
-~/.hermes-studio/sessions/
+node_modules/
+~/.camelia-studio/sessions/

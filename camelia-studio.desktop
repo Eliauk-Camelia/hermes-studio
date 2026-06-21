@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Camelia Studio
 Comment=AI 编程助手 — 山茶花
-Exec=/home/arch/Desktop/WorkSpace/camelia-studio/.venv/bin/python /home/arch/Desktop/WorkSpace/camelia-studio/src/desktop.py
+Exec=/home/arch/Desktop/WorkSpace/camelia-studio/run-electron.sh
 Icon=/home/arch/Desktop/WorkSpace/camelia-studio/src/static/icon.svg
 Terminal=false
 Type=Application
