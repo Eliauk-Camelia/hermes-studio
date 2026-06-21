@@ -180,6 +180,25 @@
     border-radius: 18px 18px 18px 5px;
     border: 1px solid rgba(255,255,255,.04);
     box-shadow: var(--shadow-sm); margin-right: 40px;
+    white-space: pre-wrap;
+  }
+  .msg.assistant code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    background: rgba(0,0,0,0.25);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .msg.assistant pre {
+    background: rgba(0,0,0,0.3);
+    padding: 12px 14px;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+  .msg.assistant pre code {
+    background: none;
+    padding: 0;
   }
   .msg.tool {
     align-self: flex-start; display: flex; align-items: flex-start; gap: 8px;
@@ -348,6 +367,16 @@ function escapeHtml(s) {
   return d.innerHTML;
 }
 
+function renderMarkdown(text) {
+  // 简单 Markdown → HTML：仅处理代码块和行内代码
+  let html = escapeHtml(text);
+  // 代码块: ```...```
+  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+  // 行内代码: `...`
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  return html;
+}
+
 async function switchSession(id) {
   try {
     sessionId = id;
@@ -395,7 +424,7 @@ function addMsg(role, text) {
   if (w) w.style.display = "none";
   const div = document.createElement("div");
   if (role === "user") { div.className = "msg user"; div.textContent = text; }
-  else if (role === "assistant") { div.className = "msg assistant"; div.textContent = text; }
+  else if (role === "assistant") { div.className = "msg assistant"; div.innerHTML = renderMarkdown(text); }
   else if (role.startsWith("tool-")) {
     div.className = "msg tool " + role;
     const dot = document.createElement("span"); dot.className = "dot";
@@ -429,14 +458,17 @@ ws.onmessage = e => {
       streamDiv.className = "msg assistant";
       chat.appendChild(streamDiv);
     }
-    streamDiv.textContent += event.content;
+    // 流式过程中用纯文本追加（避免截断 Markdown 语法）
+    streamDiv.textContent = (streamDiv.textContent || "") + event.content;
     chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
   } else if (event.type === "text") {
-    // 如果已有流式 div，不再新建；否则创建
-    if (!streamDiv) {
+    if (streamDiv) {
+      // 渲染完整 Markdown
+      streamDiv.innerHTML = renderMarkdown(event.content);
+      streamDiv = null;
+    } else {
       addMsg("assistant", event.content);
     }
-    streamDiv = null;
   } else if (event.type === "error") {
     streamDiv = null;
     addMsg("tool-tool-error", event.content);
