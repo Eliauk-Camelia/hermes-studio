@@ -36,10 +36,10 @@ python src/agent.py
 
 ## 路线图
 
-- [x] v0.1.0 Agent 核心循环（Tool Calling 引擎）
-- [ ] v0.2.0 Web 聊天界面（FastAPI + WebSocket）
-- [ ] v0.3.0 文件系统工具（读写文件、执行命令）
-- [ ] v0.4.0 硬件控制（MSPM0 / STM32 串口通信）
-- [ ] v0.5.0 多端互通（CLI + Web + Telegram）
-- [ ] v0.6.0 对话记忆持久化
-- [ ] v1.0.0 可扩展工具插件系统
+- [x] v0.0.1 Agent 核心循环（Tool Calling 引擎）
+- [ ] v0.0.2 Web 聊天界面（FastAPI + WebSocket）
+- [ ] v0.0.3 文件系统工具（读写文件、执行命令）
+- [ ] v0.0.4 硬件控制（MSPM0 / STM32 串口通信）
+- [ ] v0.0.5 多端互通（CLI + Web + Telegram）
+- [ ] v0.0.6 对话记忆持久化
+- [ ] v0.1.0 可扩展工具插件系统
