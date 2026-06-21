@@ -112,6 +112,10 @@ def _read_file(path: str) -> str:
 
 # 命令白名单：只允许执行这些基础命令
 # 阶段 1 开放常用开发命令；阶段 3 可改为动态配置
+#
+# ⚠️ 安全注意：部分命令携带执行能力（git/find/docker/make/ssh/tar 等），
+# 其参数可用于注入任意代码。当前策略：本地单用户工具，信任操作者。
+# 若未来暴露到公网，需移除高危命令或增加参数校验。
 _ALLOWED_COMMANDS = {
     "ls", "cat", "head", "tail", "echo", "pwd", "whoami", "date", "uname",
     "python", "python3", "pip", "pip3", "git", "make", "cmake", "gcc", "g++",
