@@ -105,7 +105,7 @@ def agent_loop(messages, tools):
 # 以下是测试代码，你不需要改
 # ============================================================
 
-# 两个简单工具
+# 内置工具
 TOOLS = [
     {
         "type": "function",
@@ -126,6 +126,49 @@ TOOLS = [
                     "expression": {"type": "string", "description": "数学表达式，如 '3*4+2'"}
                 },
                 "required": ["expression"],
+            },
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": "读取文件内容。用于查看代码、配置、日志等文本文件。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "文件的绝对路径或相对路径"}
+                },
+                "required": ["path"],
+            },
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "write_file",
+            "description": "将内容写入文件。用于创建或覆盖文件。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "文件的绝对路径或相对路径"},
+                    "content": {"type": "string", "description": "要写入的内容"},
+                },
+                "required": ["path", "content"],
+            },
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_dir",
+            "description": "列出目录中的文件和子目录。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "目录路径，默认为当前目录"}
+                },
+                "required": [],
             },
         }
     },
@@ -156,6 +199,36 @@ def execute_tool(name, args):           # 执行工具
             return str(_eval(tree.body))
         except Exception as e:
             return f"计算出错: {e}"
+    elif name == "read_file":
+        from pathlib import Path
+        p = Path(args["path"]).expanduser()
+        if not p.exists():
+            return f"文件不存在: {args['path']}"
+        content = p.read_text(encoding="utf-8", errors="replace")
+        if len(content) > 8000:
+            content = content[:8000] + f"\n... (截断，共 {len(content)} 字符)"
+        return content
+    elif name == "write_file":
+        from pathlib import Path
+        p = Path(args["path"]).expanduser()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(args["content"], encoding="utf-8")
+        return f"已写入: {p} ({len(args['content'])} 字符)"
+    elif name == "list_dir":
+        from pathlib import Path
+        p = Path(args.get("path", ".")).expanduser()
+        if not p.exists() or not p.is_dir():
+            return f"目录不存在: {p}"
+        items = sorted(p.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower()))
+        lines = []
+        for item in items[:100]:
+            suffix = "/" if item.is_dir() else ""
+            size = item.stat().st_size
+            lines.append(f"  {item.name}{suffix}  ({size:,} bytes)")
+        result = "\n".join(lines)
+        if len(items) > 100:
+            result += f"\n... (共 {len(items)} 项，仅显示前 100)"
+        return result or "(空目录)"
     return f"未知工具: {name}"
 
 
