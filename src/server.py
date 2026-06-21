@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 import uvicorn
 import json
+import traceback
 
 
 app = FastAPI()
@@ -30,7 +31,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 if event["type"] == "text":
                     messages.append({"role": "assistant", "content": event["content"]})
         except Exception as e:
-            await websocket.send_text(json.dumps({"type": "error", "content": f"出错了: {e}"}))
+            traceback.print_exc()
+            await websocket.send_text(json.dumps({"type": "error", "content": "处理请求时出错，请查看服务端日志"}))
 
 
 if __name__ == "__main__":
