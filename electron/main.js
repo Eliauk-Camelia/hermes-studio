@@ -387,6 +387,9 @@ function createWindow(url) {
     },
   });
 
+  // 清空 HTTP 缓存，确保每次加载最新页面
+  mainWindow.webContents.session.clearCache();
+
   const menuTemplate = [
     {
       label: 'Camelia Studio',
@@ -427,7 +430,7 @@ function createWindow(url) {
   if (typeof url === 'string') {
     // 区分 URL 和本地路径：以 http 开头的是 URL，否则是文件路径
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      mainWindow.loadURL(url);
+      mainWindow.loadURL(url + '?v=' + Date.now());
     } else {
       mainWindow.loadFile(url);
     }
