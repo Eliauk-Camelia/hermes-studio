@@ -2,488 +2,590 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Camelia Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg-editor:    #1e1e1e;
-    --bg-sidebar:   #252526;
-    --bg-activity:  #333333;
-    --bg-tab:       #2d2d2d;
-    --bg-input:     #3c3c3c;
-    --bg-widget:    #252526;
-    --bg-hover:     #2a2d2e;
-    --bg-active:    #094771;
-    --border:       #3c3c3c;
-    --fg:           #cccccc;
-    --fg-bright:    #ffffff;
-    --fg-dim:       #858585;
-    --accent:       #007acc;
-    --accent-btn:   #0e639c;
-    --green:        #81b88b;
-    --red:          #c74e39;
-    --scroll:       #79797966;
-    --w: 48px;   /* activity bar */
-    --sw: 280px; /* sidebar */
+    --ink:       #0d1210;
+    --leaf:      #141c18;
+    --moss:      #1a231e;
+    --bark:      #232d28;
+    --stone:     #2c3832;
+    --mist:      #8b958b;
+    --mist-dim:  #5a655c;
+    --petal:     #e8927c;
+    --petal-dim: #c47260;
+    --sage:      #8ba389;
+    --sage-dim:  #5c725a;
+    --dew:       #f0ece6;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+    --sidebar-w: 260px;
+    --glow-petal: rgba(232,146,124,0.12);
   }
+
   * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { height:100%; overflow:hidden; }
+
   body {
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    font-size: 13px;
-    background: var(--bg-editor);
-    color: var(--fg);
-    display: flex; flex-direction: column;
+    font-family: 'Noto Serif SC', serif;
+    background: var(--ink);
+    color: var(--dew);
+    height: 100dvh; display: flex; overflow: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* ── 顶部容器 (activity + sidebar + main) ── */
-  .app-body { display:flex; flex:1; overflow:hidden; }
-
-  /* ── 活动栏 ── */
-  .activity-bar {
-    width: var(--w); flex-shrink:0;
-    background: var(--bg-activity);
-    display: flex; flex-direction: column; align-items: center;
-    padding-top: 4px;
+  /* ── 背景层 ── */
+  .bg-layer {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
   }
-  .act-top { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
-  .act-bot { padding-bottom:4px; }
-  .act-btn {
-    width: 48px; height: 48px; display:flex; align-items:center; justify-content:center;
-    cursor: pointer; border: none; background: transparent;
-    color: #fff6; font-size: 1.25rem;
-    border-left: 2px solid transparent;
+  .bg-layer::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 70% 50% at 90% 10%, var(--glow-petal) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 10% 90%, rgba(139,163,137,0.08) 0%, transparent 55%),
+      radial-gradient(ellipse 30% 30% at 50% 50%, rgba(232,146,124,0.03) 0%, transparent 70%);
   }
-  .act-btn:hover { color: #fff; }
-  .act-btn.active { color: #fff; border-left-color: #fff; }
+  .bg-layer::after {
+    content: ''; position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.7;
+  }
 
   /* ── 侧边栏 ── */
   .sidebar {
-    width: var(--sw); flex-shrink:0;
-    background: var(--bg-sidebar);
-    border-right: 1px solid var(--border);
+    position: relative; z-index: 2;
+    width: var(--sidebar-w); flex-shrink: 0;
+    background: var(--leaf);
+    border-right: 1px solid rgba(255,255,255,0.04);
     display: flex; flex-direction: column;
-    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
   }
-  .sidebar.collapsed { display:none; }
-  .section-header {
-    padding: 8px 12px; font-size: 11px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.05em;
-    color: #bbb; cursor: pointer;
-    display: flex; align-items: center; justify-content: space-between;
+  .sidebar-header {
+    padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: flex; align-items: center; gap: 8px;
   }
-  .section-header:hover { color: var(--fg); }
-  .section-body { overflow: hidden; }
-  .section-body.collapsed { display:none; }
-
+  .sidebar-header .logo {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--petal), var(--petal-dim));
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+    box-shadow: 0 2px 8px rgba(232,146,124,0.2);
+  }
+  .sidebar-header .name {
+    font-size: 0.9rem; font-weight: 600; letter-spacing: 0.02em;
+  }
   .sidebar-new {
-    margin: 4px 12px; padding: 4px 10px;
-    background: transparent; border: 1px solid var(--border);
-    border-radius: 3px; color: var(--fg);
-    font-family: inherit; font-size: 12px; cursor: pointer; text-align: center;
+    margin: 12px 12px 8px;
+    padding: 10px;
+    background: var(--moss);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px;
+    color: var(--sage);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
   }
-  .sidebar-new:hover { background: var(--bg-hover); }
+  .sidebar-new:hover { background: var(--bark); color: var(--petal); }
 
-  .session-list { overflow-y: auto; flex:1; }
-  .session-item {
-    padding: 5px 24px; cursor: pointer;
-    display: flex; align-items: center; justify-content: space-between;
+  .sidebar-tabs {
+    display: flex; border-bottom: 1px solid rgba(255,255,255,0.04);
   }
-  .session-item:hover { background: var(--bg-hover); }
-  .session-item.active { background: var(--bg-active); }
-  .session-item.active .s-title { color: #fff; }
-  .session-item .s-info { overflow: hidden; flex:1; }
-  .session-item .s-title {
-    font-size: 13px; color: var(--fg);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;
+  .sidebar-tab {
+    flex: 1; padding: 8px; text-align: center;
+    font-size: 0.75rem; color: var(--mist-dim);
+    cursor: pointer; border: none; background: transparent;
+    border-bottom: 2px solid transparent;
+    font-family: 'Noto Serif SC', serif;
+    transition: all 0.15s;
   }
-  .session-item .s-meta { font-size: 11px; color: var(--fg-dim); margin-top:1px; }
-  .session-item .s-actions { display:flex; gap:2px; opacity:0; }
-  .session-item:hover .s-actions { opacity:1; }
-  .s-actions button {
-    background: none; border: none; color: var(--fg-dim);
-    cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 3px;
-  }
-  .s-actions button:hover { background: var(--bg-hover); color: var(--fg); }
-  .s-actions button.del:hover { color: var(--red); }
+  .sidebar-tab:hover { color: var(--mist); }
+  .sidebar-tab.active { color: var(--petal); border-bottom-color: var(--petal); }
 
-  .memory-box { padding: 8px 12px; }
-  .memory-box input {
-    width: 100%; padding: 4px 8px;
-    background: var(--bg-input); border: 1px solid var(--border);
-    border-radius: 3px; color: var(--fg);
-    font-family: inherit; font-size: 12px; outline: none;
+  .sidebar-panel { flex: 1; overflow-y: auto; display: none; flex-direction: column; }
+  .sidebar-panel.active { display: flex; }
+  .sidebar-panel .session-list { flex: 1; overflow-y: auto; padding: 4px 8px; }
+
+  .memory-search-box { padding: 10px 10px 6px; flex-shrink: 0; }
+  .memory-search-box input {
+    width: 100%; padding: 8px 10px;
+    background: var(--bark); border: 1px solid var(--stone);
+    border-radius: 8px; color: var(--dew);
+    font-family: 'Noto Serif SC', serif; font-size: 0.78rem; outline: none;
   }
-  .memory-box input:focus { border-color: var(--accent); }
-  .memory-box input::placeholder { color: #a6a6a6; }
-  .memory-list { overflow-y: auto; flex:1; }
-  .memory-item { padding: 6px 12px; cursor: pointer; }
-  .memory-item:hover { background: var(--bg-hover); }
-  .memory-item .mem-title { font-size: 12px; color: var(--fg); margin-bottom:2px; }
-  .memory-item .mem-preview {
-    font-size: 11px; color: var(--fg-dim);
+  .memory-search-box input:focus { border-color: rgba(232,146,124,0.3); }
+  .memory-search-box input::placeholder { color: var(--mist-dim); opacity: 0.5; }
+  .memory-result-list { flex: 1; overflow-y: auto; padding: 4px 8px; }
+  .memory-item {
+    padding: 10px; margin: 4px 0; border-radius: 8px;
+    background: var(--moss); border: 1px solid rgba(255,255,255,0.03);
+    cursor: pointer; transition: background 0.15s;
+  }
+  .memory-item:hover { background: var(--bark); }
+  .memory-item .mt { font-size: 0.78rem; color: var(--sage); margin-bottom: 4px; }
+  .memory-item .mp {
+    font-size: 0.72rem; color: var(--mist-dim);
     overflow: hidden; display: -webkit-box;
-    -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    -webkit-line-clamp: 3; -webkit-box-orient: vertical; line-height: 1.4;
   }
-  .memory-empty { text-align:center; padding:20px; font-size:12px; color: var(--fg-dim); }
+  .memory-empty { text-align: center; padding: 24px 12px; font-size: 0.78rem; color: var(--mist-dim); }
+
+  .session-list {
+    flex: 1; overflow-y: auto; padding: 4px 8px;
+  }
+  .session-item {
+    padding: 10px 12px; margin: 2px 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1px solid transparent;
+    border-left: 3px solid transparent;
+  }
+  .session-item:hover { background: var(--moss); }
+  .session-item.active {
+    background: var(--bark);
+    border-color: rgba(232,146,124,0.15);
+    border-left-color: var(--petal);
+    box-shadow: inset 2px 0 8px rgba(232,146,124,0.06);
+  }
+  .session-item.active .title { color: var(--petal); }
+  .session-item .info { overflow: hidden; }
+  .session-item .title {
+    font-size: 0.82rem; color: var(--dew);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 170px;
+  }
+  .session-item .meta {
+    font-size: 0.65rem; color: var(--mist-dim); font-family: 'JetBrains Mono', monospace;
+    margin-top: 2px;
+  }
+  .session-item .del {
+    opacity: 0; font-size: 0.75rem; color: var(--mist-dim);
+    padding: 2px 6px; border-radius: 4px; transition: all 0.15s;
+  }
+  .session-item:hover .del { opacity: 1; }
+  .session-item .del:hover { background: rgba(220,80,80,0.15); color: #e05555; }
 
   /* ── 主区域 ── */
-  .main { flex:1; display:flex; flex-direction:column; min-width:0; }
-
-  .tabs-bar {
-    display: flex; align-items: center;
-    background: var(--bg-tab); min-height: 35px;
+  .main {
+    position: relative; z-index: 1;
+    flex: 1; display: flex; flex-direction: column; min-width: 0;
   }
-  .tabs-bar .tab {
-    padding: 8px 16px; font-size: 13px; color: #fff;
-    border-right: 1px solid #252526;
-    background: var(--bg-editor); cursor: pointer;
-    display: flex; align-items: center; gap: 8px; white-space: nowrap;
-    border-top: 1px solid var(--accent);
+  .header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 20px;
+    background: linear-gradient(180deg, var(--leaf) 0%, rgba(20,28,24,0.95) 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    backdrop-filter: blur(12px);
   }
-  .tabs-spacer { flex:1; }
-  .tab-model { padding: 4px 12px; display:flex; align-items:center; gap:6px; border-left:1px solid #252526; }
-  .tab-model select {
-    background: var(--bg-input); color: var(--fg);
-    border: 1px solid var(--border); border-radius: 3px;
-    padding: 2px 6px; font-size: 12px; font-family: inherit; outline: none;
+  .header .menu-btn {
+    display: none;
+    background: none; border: none; color: var(--mist); font-size: 1.2rem;
+    cursor: pointer; padding: 4px;
   }
+  .model-switcher { flex: 1; display: flex; justify-content: center; }
+  .model-switcher select {
+    padding: 6px 32px 6px 12px;
+    background: var(--bark);
+    border: 1px solid var(--stone);
+    border-radius: 10px;
+    color: var(--dew);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.78rem;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b958b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.2s;
+  }
+  .model-switcher select:hover { border-color: rgba(232,146,124,0.3); }
+  .model-switcher select:focus { border-color: rgba(232,146,124,0.4); }
+  .header-config {
+    font-size: 0.65rem; color: var(--mist-dim); margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;
+  }
+  .header-status {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--sage); box-shadow: 0 0 6px var(--sage);
+    animation: pulse-status 3s ease-in-out infinite; flex-shrink: 0;
+  }
+  @keyframes pulse-status { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-  .editor-area { flex:1; display:flex; flex-direction:column; overflow:hidden; background: var(--bg-editor); }
-
-  .chat { flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
+  .chat {
+    flex: 1; overflow-y: auto; padding: 20px 16px 10px;
+    display: flex; flex-direction: column; gap: 6px;
+    scroll-behavior: smooth;
+  }
+  .chat::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='60' r='18' fill='none' stroke='%23e8927c' stroke-width='.8' opacity='.05'/%3E%3Ccircle cx='82' cy='78' r='16' fill='none' stroke='%23e8927c' stroke-width='.8' opacity='.05'/%3E%3Ccircle cx='118' cy='78' r='16' fill='none' stroke='%23e8927c' stroke-width='.8' opacity='.05'/%3E%3Ccircle cx='76' cy='98' r='16' fill='none' stroke='%23e8927c' stroke-width='.7' opacity='.05'/%3E%3Ccircle cx='124' cy='98' r='16' fill='none' stroke='%23e8927c' stroke-width='.7' opacity='.05'/%3E%3Ccircle cx='90' cy='115' r='15' fill='none' stroke='%23e8927c' stroke-width='.6' opacity='.04'/%3E%3Ccircle cx='110' cy='115' r='15' fill='none' stroke='%23e8927c' stroke-width='.6' opacity='.04'/%3E%3Ccircle cx='100' cy='100' r='6' fill='%23e8927c' opacity='.04'/%3E%3C/svg%3E") no-repeat 92% 92%/180px 180px;
+  }
 
   .welcome {
-    flex:1; display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    text-align:center; color: var(--fg-dim); gap:12px;
+    align-self: center; text-align: center;
+    margin: 60px 0 20px;
+    animation: welcomeIn .8s .2s ease-out forwards; opacity: 0;
   }
-  .welcome-icon { font-size:3.5rem; opacity:0.25; }
-  .welcome-title { font-size:1.2rem; font-weight:600; color: var(--fg); }
-  .welcome-sub { font-size:0.85rem; opacity:0.6; }
+  @keyframes welcomeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  .welcome-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .welcome-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
+  .welcome-sub { font-size: 0.82rem; color: var(--mist); }
 
-  .msg { max-width:80%; padding:10px 16px; line-height:1.6; font-size:14px; animation: msgIn 0.2s; word-break:break-word; }
-  @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-  .msg.user { align-self:flex-end; background: var(--accent-btn); color: #fff; border-radius:8px; margin-left:60px; }
-  .msg.assistant { align-self:flex-start; background: var(--bg-widget); color: var(--fg); border-radius:8px; border:1px solid #454545; margin-right:60px; white-space:pre-wrap; }
-  .msg.assistant code { font-family: 'JetBrains Mono', monospace; font-size:13px; background: rgba(255,255,255,0.06); padding:2px 6px; border-radius:3px; }
-  .msg.assistant pre { background: rgba(0,0,0,0.2); padding:12px; border-radius:6px; overflow-x:auto; margin:8px 0; border: 1px solid #454545; }
-  .msg.assistant pre code { background:none; padding:0; }
-  .msg.tool { align-self:flex-start; display:flex; align-items:center; gap:8px; font-size:12px; color: var(--fg-dim); padding:4px 0; font-family: 'JetBrains Mono', monospace; }
-  .msg.tool .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-  .msg.tool-start .dot { background: var(--green); }
-  .msg.tool-end .dot { background: #e2c08d; }
-  .msg.tool-error .dot { background: var(--red); }
+  .msg {
+    max-width: 82%; padding: 11px 16px;
+    line-height: 1.7; font-size: 0.9rem;
+    animation: msgIn .35s cubic-bezier(.16,1,.3,1);
+    word-break: break-word;
+  }
+  @keyframes msgIn { from{opacity:0;transform:translateY(10px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+  .msg.user {
+    align-self: flex-end;
+    background: linear-gradient(140deg, #c47260 0%, #b35a48 100%);
+    color: #fff; border-radius: 18px 18px 5px 18px;
+    box-shadow: 0 2px 12px rgba(180,90,72,.2); margin-left: 40px;
+  }
+  .msg.assistant {
+    align-self: flex-start;
+    background: var(--moss); color: var(--dew);
+    border-radius: 18px 18px 18px 5px;
+    border: 1px solid rgba(255,255,255,.04);
+    box-shadow: var(--shadow-sm); margin-right: 40px;
+    white-space: pre-wrap;
+  }
+  .msg.assistant code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    background: rgba(0,0,0,0.25);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .msg.assistant pre {
+    background: rgba(0,0,0,0.3);
+    padding: 12px 14px;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+  .msg.assistant pre code {
+    background: none;
+    padding: 0;
+  }
+  .msg.tool {
+    align-self: flex-start; display: flex; align-items: flex-start; gap: 8px;
+    background: transparent; color: var(--mist);
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+    padding: 6px 0; max-width: 70%;
+    animation: toolIn .4s cubic-bezier(.16,1,.3,1);
+  }
+  @keyframes toolIn { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
+  .msg.tool .dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+  }
+  .msg.tool.tool-start .dot { background: var(--sage); box-shadow: 0 0 6px var(--sage-dim); animation: toolPulse 1.5s ease-in-out infinite; }
+  @keyframes toolPulse { 0%,100%{box-shadow:0 0 4px var(--sage-dim)} 50%{box-shadow:0 0 12px var(--sage)} }
+  .msg.tool.tool-end .dot { background: var(--petal); }
+  .msg.tool.tool-error .dot { background: #e05555; }
 
-  .input-bar { padding:10px 16px; background: var(--bg-widget); border-top: 1px solid #454545; }
-  .input-wrap { display:flex; gap:8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; padding:4px; }
-  .input-wrap:focus-within { border-color: var(--accent); }
+  .input-bar {
+    padding: 12px 16px 16px;
+    background: linear-gradient(0deg, var(--leaf) 0%, rgba(20,28,24,.97) 100%);
+    border-top: 1px solid rgba(255,255,255,.04);
+    backdrop-filter: blur(12px);
+  }
+  .input-wrap {
+    display: flex; gap: 8px;
+    background: var(--bark); border: 1px solid var(--stone);
+    border-radius: 16px; padding: 4px;
+    transition: border-color .25s, box-shadow .25s;
+  }
+  .input-wrap:focus-within { border-color: rgba(232,146,124,.3); box-shadow: 0 0 0 3px var(--glow-petal); }
   .input-wrap textarea {
-    flex:1; padding:8px 10px; background:transparent; border:none;
-    color: var(--fg); font-family: inherit; font-size: 13px;
-    resize:none; outline:none; max-height:100px; line-height:1.5;
+    flex: 1; padding: 10px 12px;
+    background: transparent; border: none;
+    color: var(--dew); font-family: 'Noto Serif SC', serif;
+    font-size: 0.88rem; resize: none; outline: none;
+    max-height: 120px; line-height: 1.5;
   }
-  .input-wrap textarea::placeholder { color: #a6a6a6; }
+  .input-wrap textarea::placeholder { color: var(--mist-dim); opacity: .6; }
   .input-wrap button {
-    padding:8px 14px; background: var(--accent-btn); color: #fff;
-    border:none; border-radius:4px; font-family: inherit; font-size: 13px;
-    font-weight: 500; cursor:pointer; flex-shrink:0; align-self:flex-end;
+    padding: 10px 18px;
+    background: linear-gradient(135deg, var(--petal), var(--petal-dim));
+    color: #fff; border: none; border-radius: 13px;
+    font-family: 'Noto Serif SC', serif; font-size: .85rem; font-weight: 600;
+    cursor: pointer; transition: all .2s; flex-shrink: 0; align-self: flex-end;
   }
-  .input-wrap button:hover { background: #1177bb; }
+  .input-wrap button:hover { filter: brightness(1.08); }
+  .input-wrap button:active { transform: scale(.95); }
 
-  #switchNotify {
-    display:none; padding:6px 16px; text-align:center;
-    background: rgba(0,122,204,0.1); font-size:12px; color: var(--accent);
+  .input-hint { text-align: center; font-size: .68rem; color: var(--mist-dim); margin-top: 6px; opacity: .6; }
+
+  .chat::-webkit-scrollbar, .session-list::-webkit-scrollbar { width: 4px; }
+  .chat::-webkit-scrollbar-track, .session-list::-webkit-scrollbar-track { background: transparent; }
+  .chat::-webkit-scrollbar-thumb, .session-list::-webkit-scrollbar-thumb { background: var(--stone); border-radius: 10px; }
+
+  /* ── 移动端 ── */
+  @media (max-width: 700px) {
+    .sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0; z-index: 10;
+      transform: translateX(-100%);
+      box-shadow: 4px 0 20px rgba(0,0,0,.5);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .header .menu-btn { display: block; }
+    .msg { max-width: 92%; font-size: .85rem; padding: 10px 14px; }
+    .msg.user { margin-left: 12px; border-radius: 16px 16px 4px 16px; }
+    .msg.assistant { margin-right: 12px; border-radius: 16px 16px 16px 4px; }
+    .input-bar { padding: 10px 10px 14px; }
   }
 
-  /* ── 底部面板 ── */
-  .panel { background: var(--bg-editor); border-top: 1px solid #80808059; display: none; flex-direction: column; }
-  .panel.open { display: flex; height: 200px; }
-  .panel-tabs { display:flex; background: var(--bg-widget); border-bottom: 1px solid var(--border); padding:0 8px; }
-  .panel-tab { padding:4px 12px; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color: #e7e7e799; cursor:pointer; border:none; background:transparent; font-family:inherit; border-bottom:1px solid transparent; }
-  .panel-tab:hover { color: #e7e7e7; }
-  .panel-tab.active { color: #e7e7e7; border-bottom-color: #e7e7e7; }
-  .panel-content { flex:1; padding:8px 12px; font-size:12px; font-family: 'JetBrains Mono', monospace; color: var(--fg-dim); display:none; overflow-y:auto; white-space:pre-wrap; }
-  .panel-content.active { display:block; }
-
-  /* ── 状态栏 ── */
-  .status-bar {
-    height: 22px; flex-shrink:0;
-    background: var(--accent); color: #fff;
-    display: flex; align-items: center; padding: 0 10px; gap: 12px; font-size: 12px;
+  /* 遮罩 */
+  .overlay {
+    display: none; position: fixed; inset: 0; z-index: 9;
+    background: rgba(0,0,0,.4); cursor: pointer;
   }
-  .status-item { display:flex; align-items:center; gap:4px; }
-  .status-spacer { flex:1; }
-  .status-dot { width:6px; height:6px; border-radius:50%; background: var(--green); }
-
-  .chat::-webkit-scrollbar, .session-list::-webkit-scrollbar { width:10px; }
-  .chat::-webkit-scrollbar-thumb, .session-list::-webkit-scrollbar-thumb { background: var(--scroll); }
-
-  @media (max-width:700px) {
-    .activity-bar, .sidebar, .panel { display:none !important; }
-  }
+  .overlay.show { display: block; }
 </style>
 </head>
 <body>
 
-<div class="app-body">
+<div class="bg-layer"></div>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
-<!-- 活动栏 -->
-<nav class="activity-bar" id="activityBar">
-  <div class="act-top">
-    <button class="act-btn active" data-panel="explorer" title="Explorer (Ctrl+Shift+E)">📁</button>
-    <button class="act-btn" data-panel="memory" title="Memory (Ctrl+Shift+M)">🧠</button>
-    <button class="act-btn" data-panel="chat" title="Chat">💬</button>
-  </div>
-  <div class="act-bot"><button class="act-btn" title="Settings">⚙</button></div>
-</nav>
-
-<!-- 侧边栏 -->
+<!-- ── 侧边栏 ── -->
 <aside class="sidebar" id="sidebar">
-  <div class="section-header" onclick="this.nextElementSibling.classList.toggle('collapsed')">
-    <span>▾ EXPLORER</span>
-    <span style="cursor:pointer;font-size:14px" onclick="event.stopPropagation();newSession()">+</span>
+  <div class="sidebar-header">
+    <div class="logo">&#x1f338;</div>
+    <span class="name">Camelia Studio</span>
   </div>
-  <div class="section-body">
-    <div class="section-header" onclick="this.nextElementSibling.classList.toggle('collapsed')" style="border:none">▸ CAMELIA STUDIO</div>
-    <div class="section-body"><div class="session-list" id="sessionList"></div></div>
+  <div class="sidebar-tabs">
+    <button class="sidebar-tab active" onclick="switchSidebarTab('sessions')">会话</button>
+    <button class="sidebar-tab" onclick="switchSidebarTab('memory')">记忆</button>
   </div>
-  <div id="memorySection" style="display:none;flex:1;flex-direction:column;">
-    <div class="section-header">▾ MEMORY</div>
-    <div class="memory-box"><input type="text" id="memorySearchInput" placeholder="Search memories..." oninput="searchMemory()"></div>
-    <div class="memory-list" id="memoryList"><div class="memory-empty">Type to search</div></div>
+  <div class="sidebar-panel active" id="sessionsPanel">
+    <button class="sidebar-new" onclick="newSession()">+ 新对话</button>
+    <div class="session-list" id="sessionList"></div>
+  </div>
+  <div class="sidebar-panel" id="memoryPanel">
+    <div class="memory-search-box">
+      <input type="text" id="memorySearchInput" placeholder="搜索历史记忆..." oninput="searchMemory()">
+    </div>
+    <div class="memory-result-list" id="memoryList">
+      <div class="memory-empty">输入关键词搜索相关记忆</div>
+    </div>
   </div>
 </aside>
 
-<!-- 主区域 -->
+<!-- ── 主区域 ── -->
 <div class="main">
-  <div class="tabs-bar">
-    <div class="tab active"><span>💬</span><span>Camelia Chat</span></div>
-    <div class="tabs-spacer"></div>
-    <div class="tab-model">
-      <select id="modelSelect" onchange="switchModel()"><option>loading...</option></select>
+  <header class="header">
+    <button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
+    <div class="model-switcher">
+      <select id="modelSelect" onchange="switchModel()">
+        <option>加载中...</option>
+      </select>
     </div>
-  </div>
-  <div id="switchNotify"></div>
-  <div class="editor-area">
-    <div class="chat" id="chat">
-      <div class="welcome" id="welcome">
-        <div class="welcome-icon">🌸</div>
-        <div class="welcome-title">Camelia Studio</div>
-        <div class="welcome-sub">AI coding assistant — ready</div>
-      </div>
+    <div class="header-config" id="headerConfig"></div>
+    <div class="header-status" title="已连接"></div>
+  </header>
+
+  <!-- 模型切换通知条 -->
+  <div id="switchNotify" style="display:none;padding:8px 16px;background:rgba(139,163,137,0.1);border-bottom:1px solid rgba(139,163,137,0.15);text-align:center;font-size:0.78rem;color:var(--sage);"></div>
+
+  <main class="chat" id="chat">
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">&#x1f338;</div>
+      <div class="welcome-title">Camelia Studio</div>
+      <div class="welcome-sub">AI 编程助手，随时待命</div>
     </div>
-    <div class="input-bar">
-      <div class="input-wrap">
-        <textarea id="input" rows="1" placeholder="Ask anything... (Enter send, Shift+Enter newline)"
-          onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
-        <button onclick="send()">Send</button>
-      </div>
+  </main>
+
+  <div class="input-bar">
+    <div class="input-wrap">
+      <textarea id="input" rows="1" placeholder="输入消息，Enter 发送..." onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
+      <button onclick="send()">发送</button>
     </div>
+    <div class="input-hint">Shift + Enter 换行</div>
   </div>
 </div>
-
-</div><!-- /app-body -->
-
-<!-- 底部面板 -->
-<div class="panel" id="bottomPanel">
-  <div class="panel-tabs">
-    <button class="panel-tab active" onclick="switchPanelTab('output')">OUTPUT</button>
-    <button class="panel-tab" onclick="switchPanelTab('memory')">MEMORY LOG</button>
-  </div>
-  <div class="panel-content active" data-ptab="output" id="panelOutput">Camelia Studio — Ready.</div>
-  <div class="panel-content" data-ptab="memory" id="panelMemory"></div>
-</div>
-
-<!-- 状态栏 -->
-<footer class="status-bar">
-  <span class="status-item"><span class="status-dot"></span> connected</span>
-  <span class="status-item" id="statusModel">loading...</span>
-  <span class="status-spacer"></span>
-  <span class="status-item" id="statusSession"></span>
-  <span class="status-item" id="statusMem">🧠 0</span>
-</footer>
 
 <script>
-'use strict';
-
-// ═══ 状态 ═══
+// ─── 状态 ───
 let sessionId = null;
-let streamDiv = null;
-let isGenerating = false;
-let pendingModelSwitch = null;
+let streamDiv = null;  // 流式输出时复用的 div
+let isGenerating = false;  // 是否正在生成回复
+let pendingModelSwitch = null;  // {providerId, model} 待切换
 
-const chat   = document.getElementById('chat');
-const input  = document.getElementById('input');
-const welcome= document.getElementById('welcome');
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
 
-// ═══ 活动栏 ═══
-document.getElementById('activityBar').addEventListener('click', function(e) {
-  var btn = e.target.closest('.act-btn');
-  if (!btn || !btn.dataset.panel) return;
-  // 激活样式
-  document.querySelectorAll('.act-btn').forEach(function(b) { b.classList.remove('active'); });
-  btn.classList.add('active');
-
-  var panel = btn.dataset.panel;
-  var sidebar = document.getElementById('sidebar');
-  var memSec = document.getElementById('memorySection');
-
-  if (panel === 'memory') {
-    memSec.style.display = 'flex';
-    sidebar.classList.remove('collapsed');
-    searchMemory();
-  } else if (panel === 'explorer') {
-    memSec.style.display = 'none';
-    sidebar.classList.remove('collapsed');
-    loadSessionList();
-  } else if (panel === 'chat') {
-    sidebar.classList.add('collapsed');
-  }
-});
-
-// ═══ 面板 ═══
-window.switchPanelTab = function(name) {
-  document.querySelectorAll('.panel-tab').forEach(function(t) {
-    t.classList.toggle('active', t.textContent.trim().toLowerCase().indexOf(name) >= 0);
-  });
-  document.querySelectorAll('.panel-content').forEach(function(p) {
-    p.classList.toggle('active', p.dataset.ptab === name);
-  });
-};
-
-// ═══ 快捷键 ═══
-document.addEventListener('keydown', function(e) {
-  if (e.ctrlKey && e.shiftKey && e.key === 'E') {
-    e.preventDefault();
-    var btn = document.querySelector('.act-btn[data-panel="explorer"]');
-    if (btn) btn.click();
-  }
-  if (e.ctrlKey && e.shiftKey && e.key === 'M') {
-    e.preventDefault();
-    var btn = document.querySelector('.act-btn[data-panel="memory"]');
-    if (btn) btn.click();
-  }
-  if (e.ctrlKey && e.key === 'b') {
-    e.preventDefault();
-    document.getElementById('sidebar').classList.toggle('collapsed');
-  }
-  if (e.ctrlKey && e.key === 'j') {
-    e.preventDefault();
-    document.getElementById('bottomPanel').classList.toggle('open');
-  }
-});
-
-// ═══ WebSocket ═══
-var ws = null;
+// ─── WebSocket (可重建) ───
+let ws = null;
 function createWebSocket() {
-  if (ws) { try { ws.close(); } catch(e) {} }
-  ws = new WebSocket('ws://' + location.host + '/ws');
+  if (ws) {
+    try { ws.close(); } catch {}
+  }
+  ws = new WebSocket("ws://" + location.host + "/ws");
+  ws.onerror = e => console.error("WebSocket 错误:", e);
   ws.onmessage = handleWsMessage;
-  ws.onopen = function() {
+  ws.onopen = () => {
+    // 重连后恢复当前会话
     if (sessionId) {
-      ws.send(JSON.stringify({ type: 'reconnect', session_id: sessionId }));
+      ws.send(JSON.stringify({ type: "reconnect", session_id: sessionId }));
     }
   };
-  ws.onerror = function(e) { console.error('WS error', e); };
 }
 createWebSocket();
 
-// ═══ 会话列表 ═══
-async function loadSessionList() {
-  try {
-    var res = await fetch('/api/sessions');
-    var data = await res.json();
-    var list = document.getElementById('sessionList');
-    list.innerHTML = '';
-    data.sessions.forEach(function(s) {
-      var div = document.createElement('div');
-      div.className = 'session-item' + (s.id === sessionId ? ' active' : '');
-
-      var info = document.createElement('div'); info.className = 's-info';
-      var title = document.createElement('div'); title.className = 's-title';
-      title.textContent = s.title || '(empty)';
-      var meta = document.createElement('div'); meta.className = 's-meta';
-      meta.textContent = s.count + ' msgs';
-      info.appendChild(title); info.appendChild(meta);
-
-      var acts = document.createElement('div'); acts.className = 's-actions';
-      var star = document.createElement('button');
-      star.textContent = s.starred ? '⭐' : '☆';
-      star.onclick = function(e) { e.stopPropagation(); toggleStar(s.id, star); };
-      var del = document.createElement('button'); del.className = 'del';
-      del.textContent = '✕';
-      del.onclick = function(e) { e.stopPropagation(); delSession(s.id); };
-      acts.appendChild(star); acts.appendChild(del);
-
-      div.appendChild(info); div.appendChild(acts);
-      div.onclick = function() { switchSession(s.id); };
-      list.appendChild(div);
-    });
-  } catch(err) {
-    console.error('loadSessionList:', err);
-  }
+// ─── 侧边栏 ───
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("overlay").classList.toggle("show");
 }
 
-function escapeHtml(str) {
-  var d = document.createElement('div');
-  d.textContent = str;
+// ─── 侧边栏标签切换 ───
+function switchSidebarTab(name) {
+  document.querySelectorAll(".sidebar-tab").forEach(function(t) {
+    t.classList.toggle("active", t.textContent.includes(name === "sessions" ? "会话" : "记忆"));
+  });
+  document.getElementById("sessionsPanel").classList.toggle("active", name === "sessions");
+  document.getElementById("memoryPanel").classList.toggle("active", name === "memory");
+  if (name === "memory") searchMemory();
+}
+
+// ─── 记忆搜索 ───
+var memTimer = null;
+function searchMemory() {
+  clearTimeout(memTimer);
+  memTimer = setTimeout(async function() {
+    var q = document.getElementById("memorySearchInput").value.trim();
+    var list = document.getElementById("memoryList");
+    if (!q) { list.innerHTML = '<div class="memory-empty">输入关键词搜索相关记忆</div>'; return; }
+    list.innerHTML = '<div class="memory-empty">搜索中...</div>';
+    try {
+      var res = await fetch("/api/memory/search?q=" + encodeURIComponent(q));
+      var data = await res.json();
+      if (!data.memories || data.memories.length === 0) {
+        list.innerHTML = '<div class="memory-empty">未找到相关记忆</div>'; return;
+      }
+      list.innerHTML = "";
+      data.memories.forEach(function(mem) {
+        var div = document.createElement("div"); div.className = "memory-item";
+        var t = document.createElement("div"); t.className = "mt";
+        t.textContent = (mem.metadata && mem.metadata.title) || "记忆片段";
+        var p = document.createElement("div"); p.className = "mp";
+        p.textContent = mem.content || "";
+        div.appendChild(t); div.appendChild(p);
+        list.appendChild(div);
+      });
+    } catch(e) { list.innerHTML = '<div class="memory-empty">搜索失败</div>'; }
+  }, 400);
+}
+
+function updateMemoryBadge() {
+  fetch("/api/memory/stats").then(function(r) { return r.json(); })
+  .then(function(d) {
+    var tabs = document.querySelectorAll(".sidebar-tab");
+    if (tabs.length >= 2) tabs[1].textContent = "记忆 · " + (d.count || 0);
+  }).catch(function(){});
+}
+
+async function loadSessionList() {
+  try {
+  const res = await fetch("/api/sessions");
+  const data = await res.json();
+  const list = document.getElementById("sessionList");
+  list.innerHTML = "";
+  data.sessions.forEach(s => {
+    const div = document.createElement("div");
+    div.className = "session-item" + (s.id === sessionId ? " active" : "");
+    // 用 DOM API 替代 innerHTML，杜绝 XSS
+    const info = document.createElement("div"); info.className = "info";
+    const title = document.createElement("div"); title.className = "title";
+    title.textContent = s.title || "(空)";
+    const meta = document.createElement("div"); meta.className = "meta";
+    meta.textContent = s.count + " 条消息";
+    info.appendChild(title); info.appendChild(meta);
+    // 星标按钮
+    const starBtn = document.createElement("span"); starBtn.className = "star";
+    starBtn.textContent = s.starred ? "⭐" : "☆";
+    starBtn.style.cssText = "font-size:0.85rem;cursor:pointer;padding:2px 6px;border-radius:4px;opacity:0.6;transition:all 0.15s;";
+    starBtn.onmouseenter = () => starBtn.style.opacity = "1";
+    starBtn.onmouseleave = () => starBtn.style.opacity = "0.6";
+    starBtn.onclick = (e) => { e.stopPropagation(); toggleStar(s.id, starBtn); };
+    const delBtn = document.createElement("span"); delBtn.className = "del";
+    delBtn.textContent = "✕";
+    delBtn.onclick = (e) => { e.stopPropagation(); delSession(s.id); };
+    div.appendChild(info); div.appendChild(starBtn); div.appendChild(delBtn);
+    div.onclick = () => switchSession(s.id);
+    list.appendChild(div);
+  });
+  } catch(err) { console.error("加载会话列表失败:", err); }
+}
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
   return d.innerHTML;
 }
 
 function renderMarkdown(text) {
-  var html = escapeHtml(text);
+  // 简单 Markdown → HTML：仅处理代码块和行内代码
+  let html = escapeHtml(text);
+  // 代码块: ```...```
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+  // 行内代码: `...`
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   return html;
 }
 
 async function switchSession(id) {
   try {
+    // 立即更新 sessionId 和侧边栏高亮，不等消息加载
     sessionId = id;
     await loadSessionList();
-    chat.innerHTML = '';
-    if (welcome) welcome.style.display = 'none';
-    var res = await fetch('/api/sessions/' + id);
-    if (!res.ok) { console.error('load session failed:', res.status); return; }
-    var data = await res.json();
-    data.messages.forEach(function(m) {
-      if (m.role === 'user') addMsg('user', m.content);
-      else if (m.role === 'assistant') addMsg('assistant', m.content);
+    chat.innerHTML = "";
+    const w = document.getElementById("welcome");
+    if (w) w.style.display = "none";
+    const res = await fetch("/api/sessions/" + id);
+    if (!res.ok) { console.error("加载会话失败:", res.status); return; }
+    const data = await res.json();
+    // 跳过 system 和 tool 消息，只显示用户和助手的对话
+    data.messages.forEach(m => {
+      if (m.role === "user") addMsg("user", m.content);
+      else if (m.role === "assistant") addMsg("assistant", m.content);
     });
-    document.getElementById('statusSession').textContent = id || '';
     chat.scrollTop = chat.scrollHeight;
-  } catch(err) {
-    console.error('switchSession:', err);
-  }
+  } catch(err) { console.error("切换会话失败:", err); }
 }
 
 async function toggleStar(id, btn) {
-  try {
-    var res = await fetch('/api/sessions/' + id + '/star', { method: 'POST' });
-    var data = await res.json();
-    if (data.ok) {
-      btn.textContent = data.starred ? '⭐' : '☆';
-      loadSessionList();
-    }
-  } catch(err) { console.error(err); }
+  const res = await fetch("/api/sessions/" + id + "/star", { method: "POST" });
+  const data = await res.json();
+  if (data.ok) {
+    btn.textContent = data.starred ? "⭐" : "☆";
+    loadSessionList();
+  }
 }
 
 async function delSession(id) {
-  await fetch('/api/sessions/' + id, { method: 'DELETE' });
+  await fetch("/api/sessions/" + id, { method: "DELETE" });
   if (sessionId === id) {
+    // 删除的是当前活跃对话 → 清空聊天区 → 尝试切换到下一条
     sessionId = null;
-    chat.innerHTML = '';
-    if (welcome) welcome.style.display = '';
-    document.getElementById('statusSession').textContent = '';
+    chat.innerHTML = "";
+    document.getElementById("welcome").style.display = "";
     try {
-      var res = await fetch('/api/sessions');
-      var data = await res.json();
+      const res = await fetch("/api/sessions");
+      const data = await res.json();
       if (data.sessions && data.sessions.length > 0) {
         await switchSession(data.sessions[0].id);
         return;
       }
-    } catch(e) {}
+    } catch {}
   }
   loadSessionList();
 }
@@ -493,341 +595,286 @@ async function newSession() {
   isGenerating = false;
   pendingModelSwitch = null;
   hideSwitchNotification();
-  chat.innerHTML = '';
-  if (welcome) welcome.style.display = '';
-  document.getElementById('statusSession').textContent = '';
+  chat.innerHTML = "";
+  document.getElementById("welcome").style.display = "";
   loadSessionList();
 }
 
-// ═══ 记忆 ═══
-var memTimer = null;
-async function searchMemory() {
-  clearTimeout(memTimer);
-  memTimer = setTimeout(async function() {
-    var q = document.getElementById('memorySearchInput').value.trim();
-    var list = document.getElementById('memoryList');
-    if (!q) { list.innerHTML = '<div class="memory-empty">Type to search</div>'; return; }
-    list.innerHTML = '<div class="memory-empty">Searching...</div>';
-    try {
-      var res = await fetch('/api/memory/search?q=' + encodeURIComponent(q));
-      var data = await res.json();
-      if (!data.memories || data.memories.length === 0) {
-        list.innerHTML = '<div class="memory-empty">No results</div>'; return;
-      }
-      list.innerHTML = '';
-      data.memories.forEach(function(mem) {
-        var div = document.createElement('div'); div.className = 'memory-item';
-        var t = document.createElement('div'); t.className = 'mem-title';
-        t.textContent = (mem.metadata && mem.metadata.title) || 'Memory';
-        var p = document.createElement('div'); p.className = 'mem-preview';
-        p.textContent = mem.content || '';
-        div.appendChild(t); div.appendChild(p);
-        list.appendChild(div);
-      });
-    } catch(err) {
-      list.innerHTML = '<div class="memory-empty">Search failed</div>';
-    }
-  }, 400);
-}
-
-async function loadMemoryStats() {
-  try {
-    var res = await fetch('/api/memory/stats');
-    var data = await res.json();
-    document.getElementById('statusMem').textContent = '🧠 ' + (data.count || 0);
-  } catch(err) {}
-}
-
-// ═══ 消息渲染 ═══
+// ─── 消息 ───
 function addMsg(role, text) {
-  if (welcome) welcome.style.display = 'none';
-  var div = document.createElement('div');
-  if (role === 'user') {
-    div.className = 'msg user';
-    div.textContent = text;
-  } else if (role === 'assistant') {
-    div.className = 'msg assistant';
-    div.innerHTML = renderMarkdown(text);
-  } else if (role.indexOf('tool-') === 0) {
-    div.className = 'msg tool ' + role;
-    var dot = document.createElement('span'); dot.className = 'dot';
-    var span = document.createElement('span'); span.textContent = text;
+  const w = document.getElementById("welcome");
+  if (w) w.style.display = "none";
+  const div = document.createElement("div");
+  if (role === "user") { div.className = "msg user"; div.textContent = text; }
+  else if (role === "assistant") { div.className = "msg assistant"; div.innerHTML = renderMarkdown(text); }
+  else if (role.startsWith("tool-")) {
+    div.className = "msg tool " + role;
+    const dot = document.createElement("span"); dot.className = "dot";
+    const span = document.createElement("span"); span.textContent = text;
     div.appendChild(dot); div.appendChild(span);
   }
   chat.appendChild(div);
-  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+  chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
 }
 
-// ═══ WebSocket 消息处理 ═══
+// ─── WebSocket 消息处理 ───
 function handleWsMessage(e) {
   try {
-    var ev = JSON.parse(e.data);
-
-    if (ev.type === 'reconnected') {
-      if (ev.session_id) sessionId = ev.session_id;
-      loadSessionList();
-      processQueue();
-      return;
-    }
-    if (ev.type === 'session_created') {
-      sessionId = ev.session_id;
-      document.getElementById('statusSession').textContent = sessionId;
-      loadSessionList();
-      isGenerating = false;
-    } else if (ev.type === 'session_saved') {
-      loadSessionList();
-      loadMemoryStats();
-    } else if (ev.type === 'session_renamed') {
-      loadSessionList();
-    } else if (ev.type === 'memory_found') {
-      document.getElementById('panelMemory').textContent = ev.count + ' relevant memories found';
-    } else if (ev.type === 'tool_start') {
-      isGenerating = true;
-      streamDiv = null;
-      addMsg('tool-start', '🔧 ' + ev.name + '...');
-      document.getElementById('panelOutput').textContent = '🔧 ' + ev.name;
-    } else if (ev.type === 'tool_end') {
-      addMsg('tool-end', ev.name + ' → ' + (ev.result || '').slice(0, 100));
-      document.getElementById('panelOutput').textContent = '✅ ' + ev.name;
-    } else if (ev.type === 'stream') {
-      isGenerating = true;
-      if (welcome) welcome.style.display = 'none';
-      if (!streamDiv) {
-        streamDiv = document.createElement('div');
-        streamDiv.className = 'msg assistant';
-        chat.appendChild(streamDiv);
-      }
-      streamDiv.textContent = (streamDiv.textContent || '') + ev.content;
-      chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
-    } else if (ev.type === 'text') {
-      if (streamDiv) {
-        streamDiv.innerHTML = renderMarkdown(ev.content);
-        streamDiv = null;
-      } else {
-        addMsg('assistant', ev.content);
-      }
-      finishGeneration();
-    } else if (ev.type === 'error') {
-      streamDiv = null;
-      addMsg('tool-error', ev.content);
-      finishGeneration();
-    }
-  } catch(err) {
-    console.error('handleWsMessage:', err, e.data);
+  const event = JSON.parse(e.data);
+  if (event.type === "reconnected") {
+    // 重连确认，更新当前会话 → 继续处理队列
+    if (event.session_id) sessionId = event.session_id;
+    loadSessionList();
+    processQueue();
+    return;
   }
+  if (event.type === "session_created") {
+    sessionId = event.session_id;
+    loadSessionList();
+    isGenerating = false;
+  } else if (event.type === "session_saved") {
+    loadSessionList(); updateMemoryBadge();
+  } else if (event.type === "session_renamed") {
+    loadSessionList(); // 后台 LLM 更新了标题
+  } else if (event.type === "tool_start") {
+    isGenerating = true;
+    streamDiv = null;
+    addMsg("tool-tool-start", "正在调用 " + event.name + "...");
+  } else if (event.type === "tool_end") {
+    addMsg("tool-tool-end", event.name + " → " + (event.result || "").slice(0, 80));
+  } else if (event.type === "stream") {
+    isGenerating = true;
+    const w = document.getElementById("welcome");
+    if (w) w.style.display = "none";
+    if (!streamDiv) {
+      streamDiv = document.createElement("div");
+      streamDiv.className = "msg assistant";
+      chat.appendChild(streamDiv);
+    }
+    streamDiv.textContent = (streamDiv.textContent || "") + event.content;
+    chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
+  } else if (event.type === "text") {
+    if (streamDiv) {
+      streamDiv.innerHTML = renderMarkdown(event.content);
+      streamDiv = null;
+    } else {
+      addMsg("assistant", event.content);
+    }
+    // 回复完成 → 检查是否有待切换的模型
+    finishGeneration();
+  } else if (event.type === "error") {
+    streamDiv = null;
+    addMsg("tool-tool-error", event.content);
+    // 出错也结束当前生成
+    finishGeneration();
+  }
+  } catch(err) { console.error("消息处理失败:", err); }
 }
 
+// 结束当前生成 → 检查延迟切换 → 处理消息队列
 function finishGeneration() {
   isGenerating = false;
   if (pendingModelSwitch) {
-    var sw = pendingModelSwitch;
+    const { providerId, model } = pendingModelSwitch;
     pendingModelSwitch = null;
     hideSwitchNotification();
-    applyModelSwitch(sw.providerId, sw.model);
-    return;
+    applyModelSwitch(providerId, model);
+    return; // 切换模型会重建 WebSocket，队列稍后通过重连处理
   }
   processQueue();
 }
 
-// ═══ 发送 + 队列 ═══
-var messageQueue = [];
+// ─── 发送 ───
+// ─── 消息队列 ───
+let messageQueue = [];
 
 function send() {
-  var text = input.value.trim();
+  const text = input.value.trim();
   if (!text) return;
-  input.value = '';
-  autoResize(input);
+  input.value = ""; autoResize(input);
 
   if (isGenerating || pendingModelSwitch) {
     messageQueue.push(text);
-    showSwitchNotification('Queued (' + messageQueue.length + ')');
+    showSwitchNotification("消息已加入队列（" + messageQueue.length + " 条等待中）");
     return;
   }
+
   deliverMessage(text);
 }
 
 function deliverMessage(text) {
   try {
-    addMsg('user', text);
+    addMsg("user", text);
     isGenerating = true;
     ws.send(JSON.stringify({ content: text, session_id: sessionId }));
-  } catch(err) {
-    console.error('deliverMessage:', err);
-    isGenerating = false;
-  }
+  } catch(e) { console.error("发送失败:", e); alert("发送失败，请查看控制台"); }
 }
 
 function processQueue() {
   if (messageQueue.length > 0) {
+    const text = messageQueue.shift();
     hideSwitchNotification();
-    deliverMessage(messageQueue.shift());
+    deliverMessage(text);
   }
 }
 
 function onKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    send();
-  }
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
 }
 
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
-}
+function autoResize(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 120) + "px"; }
 
-// ═══ 模型切换 ═══
-var modelOptions = [];
+// ─── 模型切换器 ───
+let modelOptions = []; // [{providerId, providerName, model}]
 
 async function initModelSwitcher() {
-  var select = document.getElementById('modelSelect');
+  const select = document.getElementById("modelSelect");
   try {
-    // 获取当前模型
-    var curModel = 'deepseek-chat';
+    // 从后端获取当前配置
+    let currentModel = "deepseek-chat";
     try {
-      var cfgRes = await fetch('/api/config');
-      var cfg    = await cfgRes.json();
-      curModel   = cfg.model || curModel;
-    } catch(e) {}
+      const configRes = await fetch("/api/config");
+      const config = await configRes.json();
+      currentModel = config.model || currentModel;
+      document.getElementById("headerConfig").textContent =
+        config.base_url ? config.base_url.replace(/^https?:\/\//, '') : '';
+    } catch {}
 
-    // Electron 模式：从 store 获取提供商列表
+    // 从 Electron store 获取所有提供商和模型
     if (window.settings && window.settings.getProviders) {
-      var provData = await window.settings.getProviders();
+      const data = await window.settings.getProviders();
       modelOptions = [];
-      (provData.providers || []).forEach(function(p) {
+      (data.providers || []).forEach(p => {
+        // 跳过未填写 API Key 的提供商
         if (!p.api_key || p.api_key === '****' || p.api_key === '***') return;
-        (p.models || []).forEach(function(m) {
-          modelOptions.push({ pid: p.id, pname: p.name, model: m });
+        (p.models || []).forEach(m => {
+          modelOptions.push({ providerId: p.id, providerName: p.name, model: m });
         });
       });
     }
 
-    // 填充下拉框
-    select.innerHTML = '';
-    if (!modelOptions.length) {
-      select.innerHTML = '<option>No provider configured</option>';
+    select.innerHTML = "";
+    if (modelOptions.length === 0) {
+      select.innerHTML = '<option>无提供商，请在设置中添加</option>';
+      document.getElementById("headerConfig").textContent =
+        "Electron 菜单 → 设置";
     } else {
-      modelOptions.forEach(function(o) {
-        var opt = document.createElement('option');
-        opt.value = o.pid + ':::' + o.model;
-        opt.textContent = o.pname + ' / ' + o.model;
-        if (o.model === curModel) opt.selected = true;
-        select.appendChild(opt);
+      modelOptions.forEach(opt => {
+        const label = opt.providerName + " / " + opt.model;
+        const selected = (opt.model === currentModel);
+        const option = document.createElement("option");
+        option.value = opt.providerId + ":::" + opt.model;
+        option.textContent = label;
+        if (selected) option.selected = true;
+        select.appendChild(option);
       });
     }
-  } catch(err) {
-    console.error('initModelSwitcher:', err);
-    select.innerHTML = '<option>Error loading models</option>';
+  } catch (e) {
+    console.error("初始化模型切换器失败:", e);
+    select.innerHTML = '<option>加载失败</option>';
   }
 }
 
-function switchModel() {
-  var select = document.getElementById('modelSelect');
-  var val = select.value;
-  if (!val || val.indexOf(':::') < 0) return;
-
-  var parts = val.split(':::');
-  var pid = parts[0], model = parts[1];
+async function switchModel() {
+  const select = document.getElementById("modelSelect");
+  const value = select.value;
+  if (!value || !value.includes(":::")) return;
+  const [providerId, model] = value.split(":::");
 
   if (!window.settings || !window.settings.setActive) {
-    console.log('Model switch only available in desktop app');
+    alert("模型切换仅在桌面应用中可用");
     return;
   }
 
+  // 正在生成中 → 保存到 store 但不重启，待完成后生效
   if (isGenerating) {
     select.disabled = true;
-    window.settings.saveActive(pid, model).then(function(d) {
-      if (d.ok) {
-        pendingModelSwitch = { providerId: pid, model: model };
-        showSwitchNotification('Switching after reply...');
+    try {
+      const data = await window.settings.saveActive(providerId, model);
+      if (data.ok) {
+        pendingModelSwitch = { providerId, model };
+        const opt = modelOptions.find(o => o.providerId === providerId && o.model === model);
+        showSwitchNotification("模型将在本次回复完成后切换为 " + (opt ? opt.providerName + " / " + opt.model : model));
       } else {
-        showSwitchNotification('Failed: ' + (d.error || 'unknown'));
+        showSwitchNotification("切换失败: " + (data.error || "未知错误"));
         select.disabled = false;
       }
-    }).catch(function(e) {
-      showSwitchNotification('Failed: ' + e.message);
+    } catch (e) {
+      showSwitchNotification("切换失败: " + e.message);
       select.disabled = false;
-    });
+    }
     return;
   }
 
+  // 空闲状态 → 立即生效
   select.disabled = true;
-  applyModelSwitch(pid, model);
+  applyModelSwitch(providerId, model);
 }
 
-async function applyModelSwitch(pid, model) {
-  var select = document.getElementById('modelSelect');
+async function applyModelSwitch(providerId, model) {
+  const select = document.getElementById("modelSelect");
   try {
-    var data = await window.settings.setActive(pid, model);
+    // 保存 + 重启后端
+    const data = await window.settings.setActive(providerId, model);
     if (!data.ok) {
-      console.error('Switch failed:', data.error);
+      alert("切换失败: " + (data.error || "未知错误"));
       select.disabled = false;
       return;
     }
+
+    // 重新连接 WebSocket，保持聊天界面
     createWebSocket();
-    await new Promise(function(r) { setTimeout(r, 800); });
+
+    // 短暂等待 WebSocket 建立 + 后端就绪
+    await new Promise(r => setTimeout(r, 800));
+
+    // 刷新模型下拉框显示
     await initModelSwitcher();
     select.disabled = false;
-  } catch(err) {
-    console.error('applyModelSwitch:', err);
+  } catch (e) {
+    alert("切换失败: " + e.message);
     select.disabled = false;
   }
 }
 
+// ─── 切换通知栏 ───
 function showSwitchNotification(msg) {
-  var el = document.getElementById('switchNotify');
-  el.textContent = msg;
-  el.style.display = 'block';
-  setTimeout(function() { el.style.display = 'none'; }, 4000);
+  const el = document.getElementById("switchNotify");
+  el.textContent = "⏳ " + msg;
+  el.style.display = "block";
+  // 3 秒后自动隐藏（如果还没被切换覆盖）
+  setTimeout(() => { el.style.display = "none"; }, 4000);
 }
 
 function hideSwitchNotification() {
-  document.getElementById('switchNotify').style.display = 'none';
+  document.getElementById("switchNotify").style.display = "none";
 }
 
-// ═══ 状态刷新 ═══
-async function refreshStatus() {
-  // 健康检查
-  var dot = document.querySelector('.status-dot');
-  try {
-    var r = await fetch('/api/health');
-    dot.style.background = r.ok ? '#81b88b' : '#f44747';
-  } catch(err) {
-    dot.style.background = '#f44747';
-  }
-  // 模型名
-  try {
-    var cfgRes = await fetch('/api/config');
-    var cfg    = await cfgRes.json();
-    document.getElementById('statusModel').textContent = cfg.model || '--';
-  } catch(err) {}
-  // 记忆计数
-  loadMemoryStats();
+// ─── 连接状态检查 ───
+function checkConnection() {
+  fetch("/api/health").then(r => {
+    document.querySelector(".header-status").style.background =
+      r.ok ? "var(--sage)" : "#e05555";
+  }).catch(() => {
+    document.querySelector(".header-status").style.background = "#e05555";
+  });
 }
 
-// ═══ 启动 ═══
-console.log('Camelia Studio starting...');
-initModelSwitcher().then(function() {
-  console.log('Model switcher ready');
-  return loadSessionList();
-}).then(function() {
-  console.log('Session list loaded');
-  return refreshStatus();
-}).then(function() {
-  console.log('Status refreshed');
-  // 自动恢复最近会话
-  return fetch('/api/sessions');
-}).then(function(res) {
-  return res.json();
-}).then(function(data) {
-  if (data.sessions && data.sessions.length > 0) {
-    return switchSession(data.sessions[0].id);
-  }
-}).catch(function(err) {
-  console.error('Startup error:', err);
-});
-
-setInterval(refreshStatus, 30000);
+// ─── 启动 ───
+(async function startup() {
+  await initModelSwitcher();
+  await loadSessionList();
+  updateMemoryBadge();
+  // 自动打开最近一次对话
+  try {
+    const res = await fetch("/api/sessions");
+    const data = await res.json();
+    if (data.sessions && data.sessions.length > 0) {
+      await switchSession(data.sessions[0].id);
+    }
+  } catch {}
+})();
+setInterval(checkConnection, 30000);
 </script>
 </body>
 </html>
