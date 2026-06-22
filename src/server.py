@@ -6,6 +6,7 @@ FastAPI 服务：静态文件 + HTTP API + WebSocket 聊天。
 """
 
 from agent import agent_loop, TOOLS, _get_client
+from memory import add_session, search as search_memory, format_memories, memory_count
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import FileResponse
 from pathlib import Path
@@ -16,6 +17,8 @@ import uuid
 import os
 import asyncio
 from datetime import datetime
+
+SYSTEM_PROMPT = "你是编程助手，用中文回复，简洁。"
 
 
 app = FastAPI()
@@ -186,6 +189,25 @@ async def api_toggle_star(session_id: str):
     )
     return {"ok": True, "starred": data["starred"]}
 
+@app.get("/api/memory/search")
+async def api_memory_search(q: str = "", n: int = 5):
+    """语义搜索记忆库。"""
+    if not q.strip():
+        return {"memories": []}
+    try:
+        mems = search_memory(q.strip(), n=n)
+        return {"memories": mems}
+    except Exception as e:
+        return {"memories": [], "error": str(e)}
+
+@app.get("/api/memory/stats")
+async def api_memory_stats():
+    """记忆库统计。"""
+    try:
+        return {"count": memory_count()}
+    except Exception:
+        return {"count": 0}
+
 
 # ─── WebSocket ─────────────────────────────────
 
@@ -194,6 +216,7 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     session_id: str | None = None
     messages: list[dict] = []
+    memory_injected = False  # 当前会话是否已注入记忆
 
     while True:
         data = await websocket.receive_text()
@@ -203,29 +226,47 @@ async def websocket_endpoint(websocket: WebSocket):
         if msg.get("type") == "reconnect":
             if msg.get("session_id"):
                 session_id = msg["session_id"]
-                messages = [{"role": "system", "content": "你是编程助手，用中文回复，简洁。"}]
+                messages = [{"role": "system", "content": SYSTEM_PROMPT}]
                 history = [m for m in load_session(session_id) if m["role"] != "system"]
                 messages.extend(history)
+                memory_injected = False  # 重连后重新注入
             await websocket.send_text(json.dumps({"type": "reconnected", "session_id": session_id}))
             continue
 
         # 切换或创建会话
         if msg.get("session_id") and msg["session_id"] != session_id:
             session_id = msg["session_id"]
-            messages = [{"role": "system", "content": "你是编程助手，用中文回复，简洁。"}]
-            # 加载历史，过滤掉已保存的 system 消息（避免重复）
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
             history = [m for m in load_session(session_id) if m["role"] != "system"]
             messages.extend(history)
+            memory_injected = False  # 切换会话后重新注入
 
         if not session_id:
             session_id = create_session()
-            messages = [{"role": "system", "content": "你是编程助手，用中文回复，简洁。"}]
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+            memory_injected = False
             await websocket.send_text(json.dumps({"type": "session_created", "session_id": session_id}))
 
         # 空内容忽略（不发消息不调 LLM）
         content = msg.get("content", "").strip()
         if not content:
             continue
+
+        # ── 首次对话时注入记忆上下文 ──
+        if not memory_injected:
+            try:
+                mems = search_memory(content)
+                if mems:
+                    ctx = format_memories(mems)
+                    messages[0]["content"] = SYSTEM_PROMPT + "\n\n" + ctx
+                    await websocket.send_text(json.dumps({
+                        "type": "memory_found",
+                        "count": len(mems),
+                    }))
+            except Exception:
+                pass  # 记忆检索失败不阻塞聊天
+            memory_injected = True
+
         messages.append({"role": "user", "content": content})
 
         try:
@@ -237,7 +278,19 @@ async def websocket_endpoint(websocket: WebSocket):
             traceback.print_exc()
             await websocket.send_text(json.dumps({"type": "error", "content": "处理请求时出错，请查看服务端日志"}))
 
+        # ── 保存会话 ──
+        # 保存前把 system prompt 恢复为原始（不保存注入的记忆上下文）
+        orig_system = messages[0]["content"]
+        messages[0]["content"] = SYSTEM_PROMPT
         save_session(session_id, messages)
+
+        # 存入记忆库（后台）
+        try:
+            add_session(session_id, messages)
+        except Exception:
+            pass
+
+        messages[0]["content"] = orig_system  # 恢复内存中的 system prompt
         await websocket.send_text(json.dumps({"type": "session_saved", "session_id": session_id}))
 
         # 后台用 LLM 生成更好的会话标题
