@@ -45,6 +45,7 @@ cp .env.example .env
 
 ```
 src/agent.py   Agent 引擎 — 单文件自包含
+  ├── _get_client()     延迟初始化 OpenAI 客户端（模块导入时不检查 Key）
   ├── call_llm()        非流式调用 — 返回完整 message（检测 tool_call）
   ├── stream_llm()      真流式调用 — 存在但未使用，agent_loop 自己模拟流式
   ├── agent_loop()      async generator，最多 10 轮工具调用循环
@@ -55,69 +56,72 @@ src/agent.py   Agent 引擎 — 单文件自包含
                          get_time / calc / read_file / write_file / list_dir / run_command
                          list_serial_ports / read_serial (嵌入式调试)
 
-src/server.py  Web 服务 — FastAPI, 由 agent.py 导入 agent_loop
+src/memory.py  ChromaDB 向量记忆系统 — 模块导入时自动初始化
+  ├── add_session()     对话结束后嵌入存储（按 800 字符分块）
+  ├── search()          语义检索，返回最相关 N 条
+  ├── format_memories() 格式化为 system prompt 上下文
+  └── memory_count()    返回存储文档块数
+  嵌入模型: all-MiniLM-L6-v2 (ONNX, 首次自动下载 ~80MB)
+  存储路径: ~/.camelia-studio/memory/
+
+src/server.py  Web 服务 — FastAPI
   ├── HTTP API          GET/DELETE /api/sessions, POST /api/sessions/{id}/star
   │                     GET /api/health, GET /api/config
-  ├── WebSocket /ws     收发 JSON 事件流: session_created / reconnected → tool_start
-  │                     → tool_end → stream → text → session_saved → session_renamed
-  │                     会话存储: ~/.camelia-studio/sessions/{id}.json
-  │                     启动时清理 >30 天旧会话，自动打开浏览器
-  ├── save_session()    每次 agent_loop 结束后自动保存，首条 user 消息作临时标题
-  ├── generate_title()  后台 LLM 调用生成会话标题（≤15字），asyncio.create_task 不阻塞
-  └── update_session_title()  更新 JSON 文件中标题字段
+  │                     GET /api/memory/search?q=  (语义搜索)
+  │                     GET /api/memory/stats       (文档块计数)
+  ├── WebSocket /ws     事件流: session_created/reconnected → memory_found →
+  │                     tool_start → tool_end → stream → text → session_saved → session_renamed
+  │                     会话 JSON: ~/.camelia-studio/sessions/{id}.json
+  │                     启动时清理 >30 天旧会话
+  ├── 记忆注入          首次用户消息时自动 search → format → 注入 system prompt
+  │                     保存会话前恢复原始 system prompt（不写入磁盘）
+  ├── 记忆存储          对话结束后 add_session() 写入 ChromaDB
+  ├── generate_title()  后台 LLM 生成标题（≤15字），asyncio.create_task 不阻塞
+  └── StaticFiles       挂载 / 提供 CSS/JS/图标等静态资源
 
 src/static/index.html   单文件聊天界面 — 山茶花深色主题
-  ├── 模型切换器        header 下拉框，列出有 API Key 的提供商的所有模型
-  │                     空闲时切换 → kill → spawn → WebSocket 重连（不刷新页面）
-  │                     生成中切换 → 仅保存到 store → 回复完成后自动生效
-  ├── 消息队列          send() 生成中将消息入队 → finishGeneration() 自动出队发送
-  ├── 自动恢复          启动时自动打开最近一次对话，侧边栏粉红左边条标识当前会话
-  ├── WebSocket 客户端  createWebSocket() 可重建，重连时发 reconnect 消息恢复历史
-  ├── 流式渲染策略      stream 事件 → textContent 逐字追加（避免不完整 Markdown 被渲染）
-  │                     text 事件  → renderMarkdown() 替换为完整 HTML（此时 Markdown 完整）
+  ├── 侧边栏            标签切换: 会话列表 | 记忆搜索
+  │                     会话: 星标置顶 + 删除，DOM API + textContent 防 XSS
+  │                     记忆: 输入关键词 → 调用 /api/memory/search → 展示结果
+  ├── 模型切换器        header 下拉框，生成中切换自动排队
+  ├── 消息队列          send() 生成中将消息入队 → finishGeneration() 自动出队
+  ├── WebSocket 客户端  createWebSocket() 可重建，重连发 reconnect 消息恢复历史
+  ├── 流式渲染策略      stream 事件 → textContent 逐字追加
+  │                     text 事件  → renderMarkdown() 替换为完整 HTML
   ├── Markdown          仅处理 ```代码块 + `行内代码，escapeHtml 后正则替换
-  ├── 会话管理          侧边栏列表 + 星标置顶 + 删除，DOM API + textContent 防 XSS
-  │                     删除当前会话自动切换到最近一条
-  ├── 健康检查          每 30s GET /api/health，header 圆点变色指示连接状态
-  └── 响应式            移动端侧边栏滑入/遮罩层，max-width: 700px 断点
+  └── 响应式            移动端侧边栏滑入/遮罩层
 
 electron/               Electron 桌面壳
-  ├── main.js           启动流程: 检查 electron-store 是否有活跃且 Key 完整的提供商
-  │                       有 → spawn Python (注入 api_key/base_url/model) → loadURL 聊天页
-  │                       无 → loadFile(settings.html) 首次引导
-  │                     IPC handlers: get/add/update/delete providers,
-  │                     set-active (存+重启), save-active (仅存), restart-backend
-  │                     test-connection (GET /models → POST /chat/completions 容错)
-  │                     get-backend-status, launch-backend
-  │                     加密 key 由 SHA256(hostname+username+userData) 确定性派生
-  ├── preload.js        contextBridge 暴露两个对象:
-  │                     window.camelia (platform, version)
-  │                     window.settings (getProviders, addProvider, setActive, saveActive,
-  │                       restartBackend, testConnection, getBackendStatus, launchBackend)
-  ├── settings.html     提供商管理界面 — 增/删/改 提供商和模型列表
-  │                     左侧快捷配置: Ollama 本地模型 / DeepSeek / 通义千问 一键填入
-  │                     通过 Electron 菜单 "设置" 进入，"← 返回聊天" 回到聊天界面
-  │                     含"测试连接"功能: 调 /models → 失败回退 /chat/completions 验证
-  ├── package.json      electron-builder 配置: 输出到 ../dist，
-  │                     publish → GitHub Release (Eliauk-Camelia/camelia-studio)
-  │                     自动更新: electron-updater，仅生产环境启用
-  └── auto-update       启动 5s 后调用 checkForUpdatesAndNotify()
-                        四个生命周期: checking / available / not-available / downloaded
+  ├── main.js           启动: 检查活跃提供商 → spawn Python (注入 env) → loadURL
+  │                     无配置 → loadFile(settings.html) 引导页
+  │                     启动时 session.clearCache() + URL 时间戳防缓存
+  │                     IPC: 提供商 CRUD / 连接测试 / 后端启停
+  │                     加密: SHA256(hostname+username+userData) 确定性派生
+  ├── preload.js        contextBridge: window.camelia / window.settings
+  ├── settings.html     提供商管理 — 快捷配置(Ollama/DeepSeek/通义千问) + 连接测试
+  └── package.json      electron-builder → GitHub Release 自动更新
 ```
 
 ## 数据流
 
 ```
-浏览器/Electron → WebSocket → server.py → async for agent_loop → call_llm → DeepSeek
-      ↑              ↑                           ↑                                  ↓
-  WebSocket        HTTP API              agent_loop yield                  execute_tool()
-  (实时推送)    (会话 CRUD)            (stream/tool/text)           (8 个工具 → 结果字符串)
-                                              ↓
-                                        save_session()
-                                       (自动保存到JSON)
+浏览器/Electron → WebSocket → server.py → async for agent_loop → call_llm → LLM
+      ↑              ↑                           ↑                             ↓
+  WebSocket        HTTP API              agent_loop yield             execute_tool()
+  (实时推送)    (会话 CRUD)            (stream/tool/text)      (8 个工具 → 结果字符串)
+                                          ↓
+                                    save_session() → add_session()
+                                   (JSON 会话)     (ChromaDB 嵌入)
+                                          
+  新对话: 用户消息 → search_memory() → format_memories() → 注入 system prompt
 ```
 
 ## agent.py 关键实现细节
+
+### 延迟初始化客户端
+
+`_get_client()` 在首次调用时才创建 `OpenAI` 实例。模块导入时不检查 API Key，
+使 server.py 可以在无 Key 环境下启动（Electron 稍后注入）。
 
 ### tool_call 时的 messages 顺序
 
@@ -134,14 +138,33 @@ LLM 返回 tool_calls 后，向 `messages` 插入两样东西：
 ### calc 工具安全
 
 使用 Python `ast` 模块解析表达式，仅允许 `BinOp` (+-*/), `Constant`, `UnaryOp`(-) 节点。
-拒绝任意代码执行。
+
+## memory.py 关键实现细节
+
+### 嵌入模型
+
+使用 ChromaDB 内置 `DefaultEmbeddingFunction`（`all-MiniLM-L6-v2` ONNX 格式）。
+首次运行自动下载模型到 `~/.cache/chroma/onnx_models/`，约 80MB。
+不需要单独安装 PyTorch 或 sentence-transformers。
+
+### 会话去重
+
+`add_session()` 先检查是否已有同 session_id 的记录，有则删除旧的后重新写入。
+确保同一会话多次保存不会产生重复嵌入。
+
+### system prompt 恢复
+
+server.py 在保存会话前将 `messages[0]["content"]` 恢复为原始 `SYSTEM_PROMPT`，
+保存后再恢复内存中的版本。这样磁盘上的 JSON 不含注入的记忆上下文，
+下次加载时根据新查询重新检索。
 
 ## 技术栈
 
-- Python 3.14: FastAPI + uvicorn + openai + python-dotenv + pyserial
+- Python 3.14: FastAPI + uvicorn + openai + python-dotenv + pyserial + chromadb + onnxruntime
 - Node.js: Electron 35 + electron-builder 26 + electron-updater + electron-store 8
-- LLM: 多提供商支持（DeepSeek / 通义千问 / Ollama 本地 / 自定义 OpenAI 兼容 API）
-- 存储: JSON 文件 (`~/.camelia-studio/sessions/`), electron-store 加密存储 (`config.json`)
+- LLM: 多提供商（DeepSeek / 通义千问 / Ollama 本地 / 自定义 OpenAI 兼容 API）
+- 嵌入: all-MiniLM-L6-v2 (ONNX, ChromaDB 内置)
+- 存储: JSON 文件 (`~/.camelia-studio/sessions/`), ChromaDB (`~/.camelia-studio/memory/`), electron-store 加密 (`config.json`)
 
 ## 项目状态
 
@@ -150,26 +173,29 @@ LLM 返回 tool_calls 后，向 `messages` 插入两样东西：
 ### 三大支柱（详见 ROADMAP.md）
 
 1. **IDE 壳** — Monaco Editor + xterm.js + 文件树，对标 VS Code 布局
-2. **嵌入式工具链**
-   - 一键烧录 — OpenOCD / DSLite 封装
-   - AI 调参闭环 — 读取传感器→分析响应→计算参数→写回设备（PID/滤波器/标定）
-3. **持久化记忆** — ChromaDB 向量存储 + RAG 语义检索
+2. **嵌入式工具链** — 一键烧录 + AI 调参闭环 (PID/滤波器/标定)
+3. **持久化记忆** — ChromaDB 向量存储 + RAG 语义检索 (✅ 已实现)
 
 ### 版本规划
 
 | 版本 | 目标 | 状态 |
 |---|---|---|
 | v0.0.1~v0.0.4 | 核心引擎 + Web 界面 + 文件工具 + 串口 | ✅ |
-| v0.0.5 | 多提供商 + Electron 桌面壳 | ✅ 当前 |
-| v0.0.6 | 记忆持久化 (ChromaDB + RAG) | ⬅ 下一步 |
+| v0.0.5 | 多提供商 + Electron 桌面壳 + 记忆系统 | ✅ 当前 |
+| v0.0.6 | 记忆持久化 (ChromaDB + RAG) | ✅ 已提前完成 |
 | v0.0.7 | Monaco Editor + 文件树 | |
 | v0.0.8 | xterm.js 终端面板 | |
 | v0.0.9 | 烧录工具 (OpenOCD / DSLite) | |
 | v0.0.10 | AI 调参闭环 (write_serial + 阶跃分析 + PID) | |
 | v0.1.0 | 三面板 IDE 整合 + 可扩展插件系统 | |
 
-注意：`requirements.txt` 已含全部后端依赖（openai + python-dotenv + fastapi + uvicorn）。
-串口工具需 `pyserial`（系统已安装）。
+### UI 设计原则 (经验教训)
+
+- **聊天是核心，不能坏**。任何布局改动必须保证聊天功能正常后再提交。
+- **山茶花主题是项目的视觉标识**（深绿底色 + 山茶粉 accent），不要随意替换。
+- **单文件 HTML** 是刻意设计，不引入 React/Vue 构建工具链。
+- **渐进增强**：一次只加一个面板/功能，验证通过再继续。
+- ChromaDB 嵌入模型首次启动自动下载 ~80MB，注意首次启动延迟。
 
 ## 安全边界
 
