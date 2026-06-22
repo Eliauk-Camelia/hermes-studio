@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camelia Studio - 设置</title>
+<style>
+  :root {
+    --ink:       #0d1210;
+    --leaf:      #141c18;
+    --moss:      #1a231e;
+    --bark:      #232d28;
+    --stone:     #2c3832;
+    --mist:      #8b958b;
+    --mist-dim:  #5a655c;
+    --petal:     #e8927c;
+    --petal-dim: #c47260;
+    --sage:      #8ba389;
+    --sage-dim:  #5c725a;
+    --dew:       #f0ece6;
+    --glow-petal: rgba(232,146,124,0.12);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Noto Serif SC', serif;
+    background: var(--ink);
+    color: var(--dew);
+    height: 100vh; display: flex; flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+
+  /* ── 顶部栏 ── */
+  .topbar {
+    padding: 14px 20px;
+    background: var(--leaf);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0;
+  }
+  .topbar .logo {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--petal), var(--petal-dim));
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    box-shadow: 0 2px 6px rgba(232,146,124,0.2);
+  }
+  .topbar .title { font-size: 0.9rem; font-weight: 600; }
+  .topbar .subtitle { font-size: 0.7rem; color: var(--mist-dim); margin-left: auto; }
+
+  /* ── 主体 ── */
+  .main {
+    flex: 1; display: flex; overflow: hidden;
+  }
+
+  /* ── 左侧列表 ── */
+  .sidebar {
+    width: 240px; flex-shrink: 0;
+    background: var(--leaf);
+    border-right: 1px solid rgba(255,255,255,0.04);
+    display: flex; flex-direction: column;
+  }
+  .sidebar-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 0.75rem; color: var(--mist);
+  }
+  .provider-list { flex: 1; overflow-y: auto; padding: 6px; }
+  .provider-item {
+    padding: 10px 12px; margin: 3px 0;
+    border-radius: 8px; cursor: pointer;
+    transition: background 0.15s;
+    border: 1px solid transparent;
+  }
+  .provider-item:hover { background: var(--moss); }
+  .provider-item.active { background: var(--bark); border-color: rgba(232,146,124,0.2); }
+  .provider-item .prov-name { font-size: 0.85rem; font-weight: 500; }
+  .provider-item .prov-url { font-size: 0.65rem; color: var(--mist-dim); font-family: 'JetBrains Mono', monospace; margin-top: 2px; word-break: break-all; }
+  .provider-item .prov-badge {
+    display: inline-block; margin-top: 4px;
+    padding: 1px 7px; border-radius: 10px;
+    font-size: 0.6rem;
+    background: rgba(139,163,137,0.12); color: var(--sage);
+  }
+  .add-btn {
+    margin: 8px; padding: 10px;
+    background: var(--moss);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px;
+    color: var(--sage);
+    font-family: inherit; font-size: 0.82rem;
+    cursor: pointer; text-align: center;
+    transition: all 0.2s;
+  }
+  .add-btn:hover { background: var(--bark); color: var(--petal); }
+
+  /* ── 右侧表单 ── */
+  .editor {
+    flex: 1; padding: 24px 32px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 16px;
+    max-width: 520px;
+  }
+  .editor .empty-state {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    text-align: center; color: var(--mist);
+  }
+  .editor .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+  .editor .empty-state .msg { font-size: 0.85rem; line-height: 1.8; }
+  .editor .empty-state .highlight { color: var(--petal); }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 0.72rem; color: var(--mist); text-transform: uppercase; letter-spacing: 0.04em; }
+  .field input, .field textarea {
+    padding: 10px 12px;
+    background: var(--bark);
+    border: 1px solid var(--stone);
+    border-radius: 8px;
+    color: var(--dew);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field textarea:focus { border-color: rgba(232,146,124,0.3); }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field .hint { font-size: 0.65rem; color: var(--mist-dim); }
+
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    padding: 10px 20px; border-radius: 10px; border: none;
+    font-family: inherit; font-size: 0.82rem; cursor: pointer;
+    transition: all 0.2s; font-weight: 500;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--petal), var(--petal-dim));
+    color: #fff;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
+  .btn-secondary {
+    background: var(--bark); color: var(--mist);
+    border: 1px solid var(--stone);
+  }
+  .btn-secondary:hover { border-color: rgba(232,146,124,0.2); color: var(--dew); }
+  .btn-danger {
+    background: transparent; color: #e05555;
+    border: 1px solid transparent;
+  }
+  .btn-danger:hover { background: rgba(220,80,80,0.1); border-color: rgba(220,80,80,0.2); }
+  .btn-launch {
+    margin-top: 8px;
+    background: linear-gradient(135deg, var(--sage), var(--sage-dim));
+    color: #fff;
+    padding: 12px 24px; font-size: 0.88rem;
+  }
+  .btn-launch:hover { filter: brightness(1.08); }
+  .btn-launch:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
+
+  .status { font-size: 0.72rem; padding: 8px 12px; border-radius: 6px; display: none; }
+  .status.show { display: block; }
+  .status.ok { background: rgba(139,163,137,0.1); color: var(--sage); }
+  .status.err { background: rgba(220,80,80,0.1); color: #e05555; }
+
+  /* ── 首次引导 ── */
+  .onboarding {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 40px;
+  }
+  .onboarding .welcome-icon { font-size: 3.5rem; margin-bottom: 16px; }
+  .onboarding .welcome-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 6px; }
+  .onboarding .welcome-sub { font-size: 0.85rem; color: var(--mist); margin-bottom: 24px; line-height: 1.7; max-width: 380px; }
+  .onboarding .welcome-sub code {
+    background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--stone); border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">&#x1f338;</div>
+  <span class="title">Camelia Studio 设置</span>
+  <span class="subtitle">API 提供商管理</span>
+</div>
+
+<div class="main">
+  <!-- 左侧提供商列表 -->
+  <div class="sidebar">
+    <div class="sidebar-header">提供商</div>
+    <div class="provider-list" id="providerList"></div>
+    <button class="add-btn" onclick="addProvider()">+ 添加提供商</button>
+    <div style="padding:8px;">
+      <div style="font-size:0.65rem;color:var(--mist-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;">快捷配置</div>
+      <button class="add-btn" onclick="addQuickProvider('ollama')" style="margin:2px 0;font-size:0.75rem;">
+        🖥️ Ollama 本地模型
+      </button>
+      <button class="add-btn" onclick="addQuickProvider('deepseek')" style="margin:2px 0;font-size:0.75rem;">
+        🌐 DeepSeek
+      </button>
+      <button class="add-btn" onclick="addQuickProvider('qwen')" style="margin:2px 0;font-size:0.75rem;">
+        ☁️ 通义千问
+      </button>
+    </div>
+  </div>
+
+  <!-- 右侧编辑区 -->
+  <div class="editor" id="editor">
+    <div class="empty-state">
+      <div>
+        <div class="icon">&#x1f4e1;</div>
+        <div class="msg">选择一个提供商，<br>或 <span class="highlight">添加新的</span> 开始配置</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 状态栏 / 启动按钮 -->
+<div style="padding: 12px 20px; background: var(--leaf); border-top: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+  <div id="launchStatus" class="status"></div>
+  <button class="btn btn-secondary" onclick="backToChat()">← 返回聊天</button>
+  <button id="launchBtn" class="btn btn-launch" onclick="launchApp()" style="margin-left: auto;">
+    &#x1f680; 启动 Camelia Studio
+  </button>
+</div>
+
+<script>
+// ─── 状态 ───
+let providers = [];
+let activeId = null;
+let activeModel = null;
+let selectedId = null;
+let isTesting = false;
+
+// ─── 初始化 ───
+async function init() {
+  try {
+    const data = await window.settings.getProviders();
+    providers = data.providers || [];
+    activeId = data.active_provider_id;
+    activeModel = data.active_model;
+    renderList();
+    updateLaunchBtn();
+    // 自动选中活跃的
+    if (activeId && providers.find(p => p.id === activeId)) {
+      selectProvider(activeId);
+    } else if (providers.length > 0) {
+      selectProvider(providers[0].id);
+    }
+  } catch (e) {
+    showStatus('加载配置失败: ' + e.message, 'err');
+  }
+}
+
+// ─── 渲染提供商列表 ───
+function renderList() {
+  const list = document.getElementById('providerList');
+  list.innerHTML = '';
+  providers.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'provider-item' + (p.id === selectedId ? ' active' : '');
+    if (p.id === activeId) div.classList.add('active');
+
+    const name = document.createElement('div');
+    name.className = 'prov-name';
+    name.textContent = p.name;
+
+    const url = document.createElement('div');
+    url.className = 'prov-url';
+    url.textContent = p.base_url.replace(/^https?:\/\//, '');
+
+    div.appendChild(name);
+    div.appendChild(url);
+
+    if (p.id === activeId && activeModel) {
+      const badge = document.createElement('span');
+      badge.className = 'prov-badge';
+      badge.textContent = '活跃: ' + activeModel;
+      div.appendChild(badge);
+    }
+
+    div.onclick = () => selectProvider(p.id);
+    list.appendChild(div);
+  });
+}
+
+// ─── 选中 & 编辑 ───
+function selectProvider(id) {
+  selectedId = id;
+  renderList();
+  renderEditor();
+}
+
+function addProvider() {
+  const defaultProvider = {
+    name: '新提供商',
+    base_url: 'https://api.deepseek.com/v1',
+    api_key: '',
+    models: ['deepseek-chat'],
+  };
+  window.settings.addProvider(defaultProvider).then(data => {
+    if (data.ok) {
+      providers.push(data.provider);
+      selectedId = data.provider.id;
+      renderList();
+      renderEditor();
+      updateLaunchBtn();
+    }
+  });
+}
+
+// ─── 快捷配置 ───
+function addQuickProvider(type) {
+  const templates = {
+    ollama: {
+      name: 'Ollama 本地模型',
+      base_url: 'http://localhost:11434/v1',
+      api_key: 'ollama',
+      models: ['qwen2.5-coder:7b', 'qwen2.5:7b', 'deepseek-coder:6.7b'],
+    },
+    deepseek: {
+      name: 'DeepSeek',
+      base_url: 'https://api.deepseek.com/v1',
+      api_key: '',
+      models: ['deepseek-chat', 'deepseek-reasoner'],
+    },
+    qwen: {
+      name: '通义千问',
+      base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      api_key: '',
+      models: ['qwen-plus', 'qwen-max', 'qwen-turbo'],
+    },
+  };
+  const tpl = templates[type];
+  if (!tpl) return;
+
+  window.settings.addProvider(tpl).then(data => {
+    if (data.ok) {
+      providers.push(data.provider);
+      selectedId = data.provider.id;
+      renderList();
+      renderEditor();
+      updateLaunchBtn();
+    }
+  });
+}
+
+async function deleteProvider() {
+  if (!selectedId) return;
+  if (!confirm('确定删除此提供商？')) return;
+  const data = await window.settings.deleteProvider(selectedId);
+  if (data.ok) {
+    providers = providers.filter(p => p.id !== selectedId);
+    selectedId = providers.length > 0 ? providers[0].id : null;
+    renderList();
+    renderEditor();
+    updateLaunchBtn();
+  }
+}
+
+// ─── 编辑表单 ───
+function renderEditor() {
+  const editor = document.getElementById('editor');
+  const p = providers.find(x => x.id === selectedId);
+  if (!p) {
+    editor.innerHTML = `<div class="empty-state"><div><div class="icon">&#x1f4e1;</div><div class="msg">选择一个提供商，或 <span class="highlight">添加新的</span></div></div></div>`;
+    return;
+  }
+
+  const modelList = (p.models || []).join('\n');
+  const isActive = p.id === activeId;
+
+  editor.innerHTML = `
+    <div class="field">
+      <label>名称</label>
+      <input id="fName" value="${escapeHtml(p.name)}" placeholder="如: DeepSeek, 通义千问...">
+    </div>
+    <div class="field">
+      <label>Base URL</label>
+      <input id="fUrl" value="${escapeHtml(p.base_url)}" placeholder="https://api.deepseek.com/v1">
+      <span class="hint">OpenAI 兼容 API 地址。千问: https://dashscope.aliyuncs.com/compatible-mode/v1</span>
+    </div>
+    <div class="field">
+      <label>API Key</label>
+      <input id="fKey" type="password" value="${escapeHtml(p.api_key)}" placeholder="sk-...">
+      <span class="hint">Key 加密存储在本机，不上传任何服务器</span>
+    </div>
+    <div class="field">
+      <label>模型列表（每行一个）</label>
+      <textarea id="fModels" placeholder="deepseek-chat&#10;deepseek-reasoner">${escapeHtml(modelList)}</textarea>
+      <span class="hint">点击"测试连接"可自动拉取可用模型</span>
+    </div>
+    <div id="formStatus" class="status"></div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="saveProvider()" id="saveBtn">保存</button>
+      <button class="btn btn-secondary" onclick="testConnection()" id="testBtn">测试连接</button>
+      <button class="btn btn-secondary" onclick="setActive()" ${isActive ? 'disabled' : ''} id="activeBtn">${isActive ? '已是活跃提供商' : '设为活跃'}</button>
+      <button class="btn btn-danger" onclick="deleteProvider()" style="margin-left: auto;">删除</button>
+    </div>
+  `;
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ─── 保存 ───
+async function saveProvider() {
+  const name = document.getElementById('fName').value.trim();
+  const base_url = document.getElementById('fUrl').value.trim();
+  const api_key = document.getElementById('fKey').value.trim();
+  const modelsText = document.getElementById('fModels').value.trim();
+
+  if (!name) return showFormStatus('名称不能为空', 'err');
+  if (!base_url) return showFormStatus('Base URL 不能为空', 'err');
+  if (!api_key) return showFormStatus('API Key 不能为空', 'err');
+
+  const models = modelsText.split('\n').map(s => s.trim()).filter(Boolean);
+
+  const data = await window.settings.updateProvider(selectedId, {
+    name, base_url, api_key, models,
+  });
+
+  if (data.ok) {
+    const idx = providers.findIndex(p => p.id === selectedId);
+    if (idx !== -1) providers[idx] = data.provider;
+    renderList();
+    showFormStatus('已保存', 'ok');
+    updateLaunchBtn();
+  } else {
+    showFormStatus('保存失败: ' + (data.error || '未知错误'), 'err');
+  }
+}
+
+// ─── 测试连接 ───
+async function testConnection() {
+  if (isTesting) return;
+  const url = document.getElementById('fUrl').value.trim();
+  const key = document.getElementById('fKey').value.trim();
+  if (!url || !key) return showFormStatus('请先填写 Base URL 和 API Key', 'err');
+
+  const btn = document.getElementById('testBtn');
+  isTesting = true;
+  btn.textContent = '测试中...';
+  btn.disabled = true;
+  showFormStatus('正在连接...', '');
+
+  try {
+    const data = await window.settings.testConnection(url, key);
+    if (data.ok) {
+      if (data.models && data.models.length > 0) {
+        showFormStatus('连接成功！找到 ' + data.models.length + ' 个模型', 'ok');
+        document.getElementById('fModels').value = data.models.join('\n');
+      } else {
+        showFormStatus(data.hint || '连接成功，请手动填写模型名', 'ok');
+      }
+    } else {
+      showFormStatus('连接失败: ' + (data.error || '未知错误'), 'err');
+    }
+  } catch (e) {
+    showFormStatus('请求失败: ' + e.message, 'err');
+  } finally {
+    isTesting = false;
+    btn.textContent = '测试连接';
+    btn.disabled = false;
+  }
+}
+
+function showFormStatus(msg, type) {
+  const el = document.getElementById('formStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'status show ' + (type || '');
+}
+
+// ─── 设为活跃 ───
+async function setActive() {
+  const p = providers.find(x => x.id === selectedId);
+  if (!p || !p.models || p.models.length === 0) return alert('请先配置模型列表');
+  const model = p.models[0];
+  const data = await window.settings.setActive(selectedId, model);
+  if (data.ok) {
+    activeId = selectedId;
+    activeModel = model;
+    renderList();
+    renderEditor();
+    updateLaunchBtn();
+    showStatus('已切换活跃提供商: ' + p.name + ' / ' + model, 'ok');
+  } else {
+    alert('切换失败: ' + (data.error || '未知错误'));
+  }
+}
+
+// ─── 启动 ───
+async function launchApp() {
+  if (!activeId) return alert('请先配置至少一个提供商并设为活跃');
+  const btn = document.getElementById('launchBtn');
+  btn.disabled = true;
+  btn.textContent = '启动中...';
+  showStatus('正在启动后端服务...', '');
+
+  try {
+    // 先尝试直接检查后端
+    const status = await window.settings.getBackendStatus();
+    if (status.running) {
+      window.location.href = 'http://127.0.0.1:8648';
+      return;
+    }
+    // 启动后端
+    const data = await window.settings.launchBackend();
+    if (data.ok) {
+      showStatus('后端就绪，即将跳转...', 'ok');
+      setTimeout(() => {
+        window.location.href = 'http://127.0.0.1:8648';
+      }, 500);
+    } else {
+      showStatus('启动失败: ' + (data.error || '未知错误'), 'err');
+      btn.disabled = false;
+      btn.textContent = '\u{1F680} 启动 Camelia Studio';
+    }
+  } catch (e) {
+    showStatus('启动失败: ' + e.message, 'err');
+    btn.disabled = false;
+    btn.textContent = '\u{1F680} 启动 Camelia Studio';
+  }
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('launchStatus');
+  el.textContent = msg;
+  el.className = 'status show ' + (type || '');
+}
+
+function updateLaunchBtn() {
+  const btn = document.getElementById('launchBtn');
+  if (!activeId) {
+    btn.disabled = true;
+    btn.textContent = '请先配置并设为活跃';
+  } else {
+    btn.disabled = false;
+    btn.textContent = '\u{1F680} 启动 Camelia Studio';
+  }
+}
+
+// ─── 返回聊天 ───
+async function backToChat() {
+  try {
+    const status = await window.settings.getBackendStatus();
+    if (status.running) {
+      window.location.href = 'http://127.0.0.1:8648';
+    } else {
+      showStatus('后端未运行，请先启动', 'err');
+    }
+  } catch {
+    showStatus('无法连接后端', 'err');
+  }
+}
+
+// ─── 启动 ───
+init();
+
+// 定期检查后端状态
+setInterval(async () => {
+  try {
+    const status = await window.settings.getBackendStatus();
+    if (status.running) {
+      showStatus('后端服务运行中 — 可以启动', 'ok');
+    }
+  } catch {}
+}, 5000);
+</script>
+</body>
+</html>

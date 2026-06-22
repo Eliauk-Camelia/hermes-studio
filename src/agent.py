@@ -20,6 +20,8 @@ from pathlib import Path
 from datetime import datetime
 
 from openai import OpenAI
+import serial
+import serial.tools.list_ports
 from dotenv import load_dotenv
 
 # ─── 启动：加载配置 ────────────────────────────
@@ -28,10 +30,17 @@ _env = Path(__file__).parent.parent / ".env"
 if _env.exists():
     load_dotenv(_env)
 
-client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    base_url=os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com/v1"),
-)
+# ── 延迟初始化 OpenAI 客户端（模块导入时不检查 Key）──
+_client = None
+
+def _get_client():
+    global _client
+    if _client is None:
+        _client = OpenAI(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            base_url=os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com/v1"),
+        )
+    return _client
 
 SYSTEM_PROMPT = "你是编程助手，用中文回复，简洁。"
 
@@ -46,10 +55,10 @@ def call_llm(messages: list[dict], tools: list[dict] | None = None):
     message.content   → 文本回复 (可能为 None)
     message.tool_calls → 工具调用请求列表 (可能为 None)
     """
-    kwargs = {"model": "deepseek-chat", "messages": messages}
+    kwargs = {"model": os.getenv("LLM_MODEL", "deepseek-chat"), "messages": messages}
     if tools:
         kwargs["tools"] = tools
-    response = client.chat.completions.create(**kwargs)
+    response = _get_client().chat.completions.create(**kwargs)
     return response.choices[0].message
 
 
@@ -59,10 +68,10 @@ def stream_llm(messages: list[dict], tools: list[dict] | None = None):
     和 call_llm 的区别：不返回完整 message，而是一个字一个字 yield。
     用于流式输出到前端。
     """
-    kwargs = {"model": "deepseek-chat", "messages": messages, "stream": True}
+    kwargs = {"model": os.getenv("LLM_MODEL", "deepseek-chat"), "messages": messages, "stream": True}
     if tools:
         kwargs["tools"] = tools
-    stream = client.chat.completions.create(**kwargs)
+    stream = _get_client().chat.completions.create(**kwargs)
     for chunk in stream:
         delta = chunk.choices[0].delta if chunk.choices else None
         if delta and delta.content:
@@ -238,6 +247,32 @@ TOOLS = [
             },
         },
     },
+    # ── list_serial_ports：扫描可用串口 ──
+    {
+        "type": "function",
+        "function": {
+            "name": "list_serial_ports",
+            "description": "扫描当前电脑上的可用串口设备，返回端口路径和描述信息。插入开发板后调用此工具查看设备路径。",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    # ── read_serial：读取串口数据 ──
+    {
+        "type": "function",
+        "function": {
+            "name": "read_serial",
+            "description": "读取串口数据，用于调试嵌入式设备（MSPM0/STM32 等）。返回接收到的文本内容。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "port": {"type": "string", "description": "串口设备路径，Linux 下如 /dev/ttyACM0，Windows 下如 COM3"},
+                    "baudrate": {"type": "integer", "description": "波特率，默认 115200"},
+                    "timeout": {"type": "number", "description": "读取超时秒数，默认 2"},
+                },
+                "required": ["port"],
+            },
+        },
+    },
 ]
 
 
@@ -341,6 +376,42 @@ def execute_tool(name: str, args: dict) -> str:
             return "命令执行超时 (30s)"
         except Exception as e:
             return f"命令执行失败: {e}"
+
+    # ── list_serial_ports ──
+    elif name == "list_serial_ports":
+        try:
+            ports = list(serial.tools.list_ports.comports())
+            if not ports:
+                return "未检测到串口设备。请检查开发板是否已连接。"
+            lines = []
+            for i, p in enumerate(ports):
+                desc = f"{p.device} — {p.description}"
+                if p.manufacturer:
+                    desc += f" (厂商: {p.manufacturer})"
+                lines.append(f"  [{i}] {desc}")
+            return "\n".join(lines)
+        except Exception as e:
+            return f"扫描串口失败: {e}"
+
+    # ── read_serial ──
+    elif name == "read_serial":
+        port = args["port"]
+        baudrate = args.get("baudrate", 115200)
+        timeout = args.get("timeout", 2)
+        try:
+            ser = serial.Serial(port, baudrate, timeout=timeout)
+            data = ser.read(ser.in_waiting or 1024)
+            ser.close()
+            text = data.decode("utf-8", errors="replace")
+            if not text.strip():
+                return f"串口 {port} 无数据（波特率 {baudrate}）"
+            if len(text) > 2000:
+                text = text[:2000] + f"\n... (截断，共 {len(text)} 字符)"
+            return text
+        except serial.SerialException as e:
+            return f"串口打开失败 ({port}): {e}"
+        except Exception as e:
+            return f"串口读取失败: {e}"
 
     return f"未知工具: {name}"
 

@@ -5,7 +5,7 @@ FastAPI 服务：静态文件 + HTTP API + WebSocket 聊天。
 会话持久化到 ~/.camelia-studio/sessions/ (JSON 文件)。
 """
 
-from agent import agent_loop, TOOLS
+from agent import agent_loop, TOOLS, _get_client
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import FileResponse
 from pathlib import Path
@@ -13,6 +13,8 @@ import uvicorn
 import json
 import traceback
 import uuid
+import os
+import asyncio
 from datetime import datetime
 
 
@@ -61,6 +63,60 @@ def save_session(session_id: str, messages: list[dict]) -> None:
         json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
+async def generate_title(messages: list[dict]) -> str:
+    """用 LLM 根据对话内容生成简短标题（≤15字）。"""
+    # 收集前几轮用户和助手消息
+    sample = []
+    for m in messages:
+        if m["role"] in ("user", "assistant"):
+            sample.append(m["content"])
+            if len(sample) >= 4:
+                break
+    if not sample:
+        return ""
+
+    prompt = (
+        "根据以下对话生成一个简短标题（不超过15个汉字），直接返回标题原文，不加任何前缀或标点：\n\n"
+        + "\n---\n".join(sample[:4])
+    )
+
+    try:
+        client = _get_client()
+        # 在线程池中运行同步 API 调用
+        loop = asyncio.get_running_loop()
+        resp = await loop.run_in_executor(
+            None,
+            lambda: client.chat.completions.create(
+                model=os.getenv("LLM_MODEL", "deepseek-chat"),
+                messages=[
+                    {"role": "system", "content": "你是标题生成器，只返回简短标题本身。"},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=30,
+                temperature=0.3,
+            ),
+        )
+        title = resp.choices[0].message.content.strip()
+        # 清理：去掉引号、多余标点
+        for ch in '"\'「」『』《》\n':
+            title = title.replace(ch, "")
+        return title[:30]
+    except Exception:
+        return ""
+
+
+def update_session_title(session_id: str, title: str) -> None:
+    """更新会话 JSON 文件中的标题字段。"""
+    path = SESSIONS_DIR / f"{session_id}.json"
+    if not path.exists():
+        return
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("title", "").strip() == title.strip():
+        return
+    data["title"] = title
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def load_session(session_id: str) -> list[dict]:
     path = SESSIONS_DIR / f"{session_id}.json"
     if not path.exists():
@@ -107,6 +163,18 @@ async def api_delete_session(session_id: str):
     delete_session(session_id)
     return {"ok": True}
 
+@app.get("/api/health")
+async def api_health():
+    return {"status": "ok"}
+
+@app.get("/api/config")
+async def api_config():
+    import os
+    return {
+        "model": os.getenv("LLM_MODEL", "deepseek-chat"),
+        "base_url": os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com/v1"),
+    }
+
 @app.post("/api/sessions/{session_id}/star")
 async def api_toggle_star(session_id: str):
     data = _read_session_file(session_id)
@@ -131,6 +199,16 @@ async def websocket_endpoint(websocket: WebSocket):
         data = await websocket.receive_text()
         msg = json.loads(data)
 
+        # ── 重连：仅加载历史，不发消息 ──
+        if msg.get("type") == "reconnect":
+            if msg.get("session_id"):
+                session_id = msg["session_id"]
+                messages = [{"role": "system", "content": "你是编程助手，用中文回复，简洁。"}]
+                history = [m for m in load_session(session_id) if m["role"] != "system"]
+                messages.extend(history)
+            await websocket.send_text(json.dumps({"type": "reconnected", "session_id": session_id}))
+            continue
+
         # 切换或创建会话
         if msg.get("session_id") and msg["session_id"] != session_id:
             session_id = msg["session_id"]
@@ -144,7 +222,11 @@ async def websocket_endpoint(websocket: WebSocket):
             messages = [{"role": "system", "content": "你是编程助手，用中文回复，简洁。"}]
             await websocket.send_text(json.dumps({"type": "session_created", "session_id": session_id}))
 
-        messages.append({"role": "user", "content": msg["content"]})
+        # 空内容忽略（不发消息不调 LLM）
+        content = msg.get("content", "").strip()
+        if not content:
+            continue
+        messages.append({"role": "user", "content": content})
 
         try:
             async for event in agent_loop(messages, TOOLS):
@@ -157,6 +239,21 @@ async def websocket_endpoint(websocket: WebSocket):
 
         save_session(session_id, messages)
         await websocket.send_text(json.dumps({"type": "session_saved", "session_id": session_id}))
+
+        # 后台用 LLM 生成更好的会话标题
+        async def _auto_title():
+            try:
+                title = await generate_title(messages)
+                if title:
+                    update_session_title(session_id, title)
+                    await websocket.send_text(json.dumps({
+                        "type": "session_renamed",
+                        "session_id": session_id,
+                        "title": title,
+                    }))
+            except Exception:
+                pass
+        asyncio.create_task(_auto_title())
 
 
 # ─── 静态文件 ──────────────────────────────────

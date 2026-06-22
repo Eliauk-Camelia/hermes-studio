@@ -95,11 +95,19 @@
     padding: 10px 12px; margin: 2px 0;
     border-radius: 8px;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
     display: flex; align-items: center; justify-content: space-between;
+    border: 1px solid transparent;
+    border-left: 3px solid transparent;
   }
   .session-item:hover { background: var(--moss); }
-  .session-item.active { background: var(--bark); border: 1px solid rgba(232,146,124,0.15); }
+  .session-item.active {
+    background: var(--bark);
+    border-color: rgba(232,146,124,0.15);
+    border-left-color: var(--petal);
+    box-shadow: inset 2px 0 8px rgba(232,146,124,0.06);
+  }
+  .session-item.active .title { color: var(--petal); }
   .session-item .info { overflow: hidden; }
   .session-item .title {
     font-size: 0.82rem; color: var(--dew);
@@ -134,10 +142,34 @@
     background: none; border: none; color: var(--mist); font-size: 1.2rem;
     cursor: pointer; padding: 4px;
   }
+  .model-switcher { flex: 1; display: flex; justify-content: center; }
+  .model-switcher select {
+    padding: 6px 32px 6px 12px;
+    background: var(--bark);
+    border: 1px solid var(--stone);
+    border-radius: 10px;
+    color: var(--dew);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.78rem;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b958b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.2s;
+  }
+  .model-switcher select:hover { border-color: rgba(232,146,124,0.3); }
+  .model-switcher select:focus { border-color: rgba(232,146,124,0.4); }
+  .header-config {
+    font-size: 0.65rem; color: var(--mist-dim); margin-right: 12px;
+    font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;
+  }
   .header-status {
     width: 7px; height: 7px; border-radius: 50%;
     background: var(--sage); box-shadow: 0 0 6px var(--sage);
-    animation: pulse-status 3s ease-in-out infinite; margin-left: auto;
+    animation: pulse-status 3s ease-in-out infinite; flex-shrink: 0;
   }
   @keyframes pulse-status { 0%,100%{opacity:1} 50%{opacity:.3} }
 
@@ -295,7 +327,17 @@
 <div class="main">
   <header class="header">
     <button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
+    <div class="model-switcher">
+      <select id="modelSelect" onchange="switchModel()">
+        <option>加载中...</option>
+      </select>
+    </div>
+    <div class="header-config" id="headerConfig"></div>
+    <div class="header-status" title="已连接"></div>
   </header>
+
+  <!-- 模型切换通知条 -->
+  <div id="switchNotify" style="display:none;padding:8px 16px;background:rgba(139,163,137,0.1);border-bottom:1px solid rgba(139,163,137,0.15);text-align:center;font-size:0.78rem;color:var(--sage);"></div>
 
   <main class="chat" id="chat">
     <div class="welcome" id="welcome">
@@ -318,9 +360,29 @@
 // ─── 状态 ───
 let sessionId = null;
 let streamDiv = null;  // 流式输出时复用的 div
-const ws = new WebSocket("ws://" + location.host + "/ws");
+let isGenerating = false;  // 是否正在生成回复
+let pendingModelSwitch = null;  // {providerId, model} 待切换
+
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
+
+// ─── WebSocket (可重建) ───
+let ws = null;
+function createWebSocket() {
+  if (ws) {
+    try { ws.close(); } catch {}
+  }
+  ws = new WebSocket("ws://" + location.host + "/ws");
+  ws.onerror = e => console.error("WebSocket 错误:", e);
+  ws.onmessage = handleWsMessage;
+  ws.onopen = () => {
+    // 重连后恢复当前会话
+    if (sessionId) {
+      ws.send(JSON.stringify({ type: "reconnect", session_id: sessionId }));
+    }
+  };
+}
+createWebSocket();
 
 // ─── 侧边栏 ───
 function toggleSidebar() {
@@ -379,19 +441,20 @@ function renderMarkdown(text) {
 
 async function switchSession(id) {
   try {
+    // 立即更新 sessionId 和侧边栏高亮，不等消息加载
     sessionId = id;
+    await loadSessionList();
     chat.innerHTML = "";
     const w = document.getElementById("welcome");
     if (w) w.style.display = "none";
     const res = await fetch("/api/sessions/" + id);
-    if (!res.ok) return console.error("加载会话失败:", res.status);
+    if (!res.ok) { console.error("加载会话失败:", res.status); return; }
     const data = await res.json();
     // 跳过 system 和 tool 消息，只显示用户和助手的对话
     data.messages.forEach(m => {
       if (m.role === "user") addMsg("user", m.content);
       else if (m.role === "assistant") addMsg("assistant", m.content);
     });
-    loadSessionList();
     chat.scrollTop = chat.scrollHeight;
   } catch(err) { console.error("切换会话失败:", err); }
 }
@@ -407,12 +470,28 @@ async function toggleStar(id, btn) {
 
 async function delSession(id) {
   await fetch("/api/sessions/" + id, { method: "DELETE" });
-  if (sessionId === id) newSession();
-  else loadSessionList();
+  if (sessionId === id) {
+    // 删除的是当前活跃对话 → 清空聊天区 → 尝试切换到下一条
+    sessionId = null;
+    chat.innerHTML = "";
+    document.getElementById("welcome").style.display = "";
+    try {
+      const res = await fetch("/api/sessions");
+      const data = await res.json();
+      if (data.sessions && data.sessions.length > 0) {
+        await switchSession(data.sessions[0].id);
+        return;
+      }
+    } catch {}
+  }
+  loadSessionList();
 }
 
 async function newSession() {
   sessionId = null;
+  isGenerating = false;
+  pendingModelSwitch = null;
+  hideSwitchNotification();
   chat.innerHTML = "";
   document.getElementById("welcome").style.display = "";
   loadSessionList();
@@ -435,22 +514,33 @@ function addMsg(role, text) {
   chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
 }
 
-ws.onerror = e => console.error("WebSocket 错误:", e);
-ws.onmessage = e => {
+// ─── WebSocket 消息处理 ───
+function handleWsMessage(e) {
   try {
   const event = JSON.parse(e.data);
+  if (event.type === "reconnected") {
+    // 重连确认，更新当前会话 → 继续处理队列
+    if (event.session_id) sessionId = event.session_id;
+    loadSessionList();
+    processQueue();
+    return;
+  }
   if (event.type === "session_created") {
     sessionId = event.session_id;
     loadSessionList();
+    isGenerating = false;
   } else if (event.type === "session_saved") {
     loadSessionList();
+  } else if (event.type === "session_renamed") {
+    loadSessionList(); // 后台 LLM 更新了标题
   } else if (event.type === "tool_start") {
-    streamDiv = null;  // 工具开始，结束上一段流式
+    isGenerating = true;
+    streamDiv = null;
     addMsg("tool-tool-start", "正在调用 " + event.name + "...");
   } else if (event.type === "tool_end") {
     addMsg("tool-tool-end", event.name + " → " + (event.result || "").slice(0, 80));
   } else if (event.type === "stream") {
-    // 流式增量：追加到同一个 div
+    isGenerating = true;
     const w = document.getElementById("welcome");
     if (w) w.style.display = "none";
     if (!streamDiv) {
@@ -458,33 +548,71 @@ ws.onmessage = e => {
       streamDiv.className = "msg assistant";
       chat.appendChild(streamDiv);
     }
-    // 流式过程中用纯文本追加（避免截断 Markdown 语法）
     streamDiv.textContent = (streamDiv.textContent || "") + event.content;
     chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
   } else if (event.type === "text") {
     if (streamDiv) {
-      // 渲染完整 Markdown
       streamDiv.innerHTML = renderMarkdown(event.content);
       streamDiv = null;
     } else {
       addMsg("assistant", event.content);
     }
+    // 回复完成 → 检查是否有待切换的模型
+    finishGeneration();
   } else if (event.type === "error") {
     streamDiv = null;
     addMsg("tool-tool-error", event.content);
+    // 出错也结束当前生成
+    finishGeneration();
   }
   } catch(err) { console.error("消息处理失败:", err); }
-};
+}
+
+// 结束当前生成 → 检查延迟切换 → 处理消息队列
+function finishGeneration() {
+  isGenerating = false;
+  if (pendingModelSwitch) {
+    const { providerId, model } = pendingModelSwitch;
+    pendingModelSwitch = null;
+    hideSwitchNotification();
+    applyModelSwitch(providerId, model);
+    return; // 切换模型会重建 WebSocket，队列稍后通过重连处理
+  }
+  processQueue();
+}
 
 // ─── 发送 ───
+// ─── 消息队列 ───
+let messageQueue = [];
+
 function send() {
   const text = input.value.trim();
   if (!text) return;
+  input.value = ""; autoResize(input);
+
+  if (isGenerating || pendingModelSwitch) {
+    messageQueue.push(text);
+    showSwitchNotification("消息已加入队列（" + messageQueue.length + " 条等待中）");
+    return;
+  }
+
+  deliverMessage(text);
+}
+
+function deliverMessage(text) {
   try {
     addMsg("user", text);
+    isGenerating = true;
     ws.send(JSON.stringify({ content: text, session_id: sessionId }));
-    input.value = ""; autoResize(input);
   } catch(e) { console.error("发送失败:", e); alert("发送失败，请查看控制台"); }
+}
+
+function processQueue() {
+  if (messageQueue.length > 0) {
+    const text = messageQueue.shift();
+    hideSwitchNotification();
+    deliverMessage(text);
+  }
 }
 
 function onKey(e) {
@@ -493,8 +621,156 @@ function onKey(e) {
 
 function autoResize(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 120) + "px"; }
 
+// ─── 模型切换器 ───
+let modelOptions = []; // [{providerId, providerName, model}]
+
+async function initModelSwitcher() {
+  const select = document.getElementById("modelSelect");
+  try {
+    // 从后端获取当前配置
+    let currentModel = "deepseek-chat";
+    try {
+      const configRes = await fetch("/api/config");
+      const config = await configRes.json();
+      currentModel = config.model || currentModel;
+      document.getElementById("headerConfig").textContent =
+        config.base_url ? config.base_url.replace(/^https?:\/\//, '') : '';
+    } catch {}
+
+    // 从 Electron store 获取所有提供商和模型
+    if (window.settings && window.settings.getProviders) {
+      const data = await window.settings.getProviders();
+      modelOptions = [];
+      (data.providers || []).forEach(p => {
+        // 跳过未填写 API Key 的提供商
+        if (!p.api_key || p.api_key === '****' || p.api_key === '***') return;
+        (p.models || []).forEach(m => {
+          modelOptions.push({ providerId: p.id, providerName: p.name, model: m });
+        });
+      });
+    }
+
+    select.innerHTML = "";
+    if (modelOptions.length === 0) {
+      select.innerHTML = '<option>无提供商，请在设置中添加</option>';
+      document.getElementById("headerConfig").textContent =
+        "Electron 菜单 → 设置";
+    } else {
+      modelOptions.forEach(opt => {
+        const label = opt.providerName + " / " + opt.model;
+        const selected = (opt.model === currentModel);
+        const option = document.createElement("option");
+        option.value = opt.providerId + ":::" + opt.model;
+        option.textContent = label;
+        if (selected) option.selected = true;
+        select.appendChild(option);
+      });
+    }
+  } catch (e) {
+    console.error("初始化模型切换器失败:", e);
+    select.innerHTML = '<option>加载失败</option>';
+  }
+}
+
+async function switchModel() {
+  const select = document.getElementById("modelSelect");
+  const value = select.value;
+  if (!value || !value.includes(":::")) return;
+  const [providerId, model] = value.split(":::");
+
+  if (!window.settings || !window.settings.setActive) {
+    alert("模型切换仅在桌面应用中可用");
+    return;
+  }
+
+  // 正在生成中 → 保存到 store 但不重启，待完成后生效
+  if (isGenerating) {
+    select.disabled = true;
+    try {
+      const data = await window.settings.saveActive(providerId, model);
+      if (data.ok) {
+        pendingModelSwitch = { providerId, model };
+        const opt = modelOptions.find(o => o.providerId === providerId && o.model === model);
+        showSwitchNotification("模型将在本次回复完成后切换为 " + (opt ? opt.providerName + " / " + opt.model : model));
+      } else {
+        showSwitchNotification("切换失败: " + (data.error || "未知错误"));
+        select.disabled = false;
+      }
+    } catch (e) {
+      showSwitchNotification("切换失败: " + e.message);
+      select.disabled = false;
+    }
+    return;
+  }
+
+  // 空闲状态 → 立即生效
+  select.disabled = true;
+  applyModelSwitch(providerId, model);
+}
+
+async function applyModelSwitch(providerId, model) {
+  const select = document.getElementById("modelSelect");
+  try {
+    // 保存 + 重启后端
+    const data = await window.settings.setActive(providerId, model);
+    if (!data.ok) {
+      alert("切换失败: " + (data.error || "未知错误"));
+      select.disabled = false;
+      return;
+    }
+
+    // 重新连接 WebSocket，保持聊天界面
+    createWebSocket();
+
+    // 短暂等待 WebSocket 建立 + 后端就绪
+    await new Promise(r => setTimeout(r, 800));
+
+    // 刷新模型下拉框显示
+    await initModelSwitcher();
+    select.disabled = false;
+  } catch (e) {
+    alert("切换失败: " + e.message);
+    select.disabled = false;
+  }
+}
+
+// ─── 切换通知栏 ───
+function showSwitchNotification(msg) {
+  const el = document.getElementById("switchNotify");
+  el.textContent = "⏳ " + msg;
+  el.style.display = "block";
+  // 3 秒后自动隐藏（如果还没被切换覆盖）
+  setTimeout(() => { el.style.display = "none"; }, 4000);
+}
+
+function hideSwitchNotification() {
+  document.getElementById("switchNotify").style.display = "none";
+}
+
+// ─── 连接状态检查 ───
+function checkConnection() {
+  fetch("/api/health").then(r => {
+    document.querySelector(".header-status").style.background =
+      r.ok ? "var(--sage)" : "#e05555";
+  }).catch(() => {
+    document.querySelector(".header-status").style.background = "#e05555";
+  });
+}
+
 // ─── 启动 ───
-loadSessionList();
+(async function startup() {
+  await initModelSwitcher();
+  await loadSessionList();
+  // 自动打开最近一次对话
+  try {
+    const res = await fetch("/api/sessions");
+    const data = await res.json();
+    if (data.sessions && data.sessions.length > 0) {
+      await switchSession(data.sessions[0].id);
+    }
+  } catch {}
+})();
+setInterval(checkConnection, 30000);
 </script>
 </body>
 </html>
