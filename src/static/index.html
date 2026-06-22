@@ -2,298 +2,260 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Camelia Studio</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  /* ── VS Code Dark+ 核心色板 (内嵌，不依赖外部 CSS) ── */
   :root {
-    --vscode-editor-background: #1e1e1e;
-    --vscode-editor-foreground: #d4d4d4;
-    --vscode-editorWidget-background: #252526;
-    --vscode-editorWidget-border: #454545;
-    --vscode-editorLineNumber-foreground: #858585;
-    --vscode-editor-lineHighlightBackground: #2a2d2e;
-    --vscode-editor-selectionBackground: #264f78;
-    --vscode-sideBar-background: #252526;
-    --vscode-sideBar-foreground: #cccccc;
-    --vscode-sideBar-border: #3c3c3c;
-    --vscode-sideBarSectionHeader-background: #252526;
-    --vscode-sideBarSectionHeader-foreground: #bbbbbb;
-    --vscode-sideBarSectionHeader-border: #3c3c3c;
-    --vscode-activityBar-background: #333333;
-    --vscode-activityBar-foreground: #ffffff;
-    --vscode-activityBar-inactiveForeground: #ffffff66;
-    --vscode-tab-background: #2d2d2d;
-    --vscode-tab-activeBackground: #1e1e1e;
-    --vscode-tab-activeForeground: #ffffff;
-    --vscode-tab-inactiveForeground: #ffffff77;
-    --vscode-tab-border: #252526;
-    --vscode-tab-activeBorderTop: #007acc;
-    --vscode-statusBar-background: #007acc;
-    --vscode-statusBar-foreground: #ffffff;
-    --vscode-panel-background: #1e1e1e;
-    --vscode-panel-border: #80808059;
-    --vscode-panelTitle-activeForeground: #e7e7e7;
-    --vscode-panelTitle-inactiveForeground: #e7e7e799;
-    --vscode-input-background: #3c3c3c;
-    --vscode-input-foreground: #cccccc;
-    --vscode-input-border: #3c3c3c;
-    --vscode-input-placeholderForeground: #a6a6a6;
-    --vscode-focusBorder: #007fd4;
-    --vscode-dropdown-background: #3c3c3c;
-    --vscode-dropdown-foreground: #f0f0f0;
-    --vscode-dropdown-border: #3c3c3c;
-    --vscode-button-background: #0e639c;
-    --vscode-button-foreground: #ffffff;
-    --vscode-button-hoverBackground: #1177bb;
-    --vscode-list-background: #252526;
-    --vscode-list-hoverBackground: #2a2d2e;
-    --vscode-list-activeSelectionBackground: #094771;
-    --vscode-list-activeSelectionForeground: #ffffff;
-    --vscode-list-inactiveSelectionBackground: #37373d;
-    --vscode-scrollbarSlider-background: #79797966;
-    --vscode-scrollbarSlider-hoverBackground: #646464b3;
-    --vscode-gitDecoration-addedResourceForeground: #81b88b;
-    --vscode-gitDecoration-modifiedResourceForeground: #e2c08d;
-    --vscode-gitDecoration-deletedResourceForeground: #c74e39;
+    --bg-editor:    #1e1e1e;
+    --bg-sidebar:   #252526;
+    --bg-activity:  #333333;
+    --bg-tab:       #2d2d2d;
+    --bg-input:     #3c3c3c;
+    --bg-widget:    #252526;
+    --bg-hover:     #2a2d2e;
+    --bg-active:    #094771;
+    --border:       #3c3c3c;
+    --fg:           #cccccc;
+    --fg-bright:    #ffffff;
+    --fg-dim:       #858585;
+    --accent:       #007acc;
+    --accent-btn:   #0e639c;
+    --green:        #81b88b;
+    --red:          #c74e39;
+    --scroll:       #79797966;
+    --w: 48px;   /* activity bar */
+    --sw: 280px; /* sidebar */
   }
-
   * { margin:0; padding:0; box-sizing:border-box; }
-
+  html, body { height:100%; overflow:hidden; }
   body {
-    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Segoe UI', system-ui, sans-serif;
     font-size: 13px;
-    background: #1e1e1e;
-    color: #d4d4d4;
-    display: grid;
-    grid-template-columns: 48px 280px 1fr;
-    grid-template-rows: 1fr 0px 22px;
-    height: 100dvh; overflow: hidden;
-    user-select: none;
+    background: var(--bg-editor);
+    color: var(--fg);
+    display: flex; flex-direction: column;
   }
 
-  /* ═══ 活动栏 ═══ */
+  /* ── 顶部容器 (activity + sidebar + main) ── */
+  .app-body { display:flex; flex:1; overflow:hidden; }
+
+  /* ── 活动栏 ── */
   .activity-bar {
-    grid-row: 1 / -1; grid-column: 1;
-    background: var(--vscode-activityBar-background);
+    width: var(--w); flex-shrink:0;
+    background: var(--bg-activity);
     display: flex; flex-direction: column; align-items: center;
     padding-top: 4px;
-    border-right: 1px solid var(--vscode-sideBar-border, #3c3c3c);
-    z-index: 10;
   }
   .act-top { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
-  .act-bot { display:flex; flex-direction:column; align-items:center; padding-bottom:4px; }
+  .act-bot { padding-bottom:4px; }
   .act-btn {
     width: 48px; height: 48px; display:flex; align-items:center; justify-content:center;
     cursor: pointer; border: none; background: transparent;
-    color: var(--vscode-activityBar-inactiveForeground);
-    font-size: 1.25rem; position: relative;
+    color: #fff6; font-size: 1.25rem;
     border-left: 2px solid transparent;
   }
-  .act-btn:hover { color: var(--vscode-activityBar-foreground); }
-  .act-btn.active { color: var(--vscode-activityBar-foreground); border-left-color: var(--vscode-activityBar-foreground); }
+  .act-btn:hover { color: #fff; }
+  .act-btn.active { color: #fff; border-left-color: #fff; }
 
-  /* ═══ 侧边栏 ═══ */
+  /* ── 侧边栏 ── */
   .sidebar {
-    grid-row: 1; grid-column: 2;
-    background: var(--vscode-sideBar-background);
+    width: var(--sw); flex-shrink:0;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
     display: flex; flex-direction: column;
-    border-right: 1px solid var(--vscode-sideBar-border, #3c3c3c);
-    overflow: hidden; z-index: 5;
+    overflow: hidden;
   }
   .sidebar.collapsed { display:none; }
-
-  .sidebar-section { border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border); }
   .section-header {
     padding: 8px 12px; font-size: 11px; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.05em;
-    color: var(--vscode-sideBarSectionHeader-foreground);
-    cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+    color: #bbb; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
   }
-  .section-header:hover { color: var(--vscode-sideBar-foreground); }
+  .section-header:hover { color: var(--fg); }
   .section-body { overflow: hidden; }
   .section-body.collapsed { display:none; }
 
   .sidebar-new {
     margin: 4px 12px; padding: 4px 10px;
-    background: transparent; border: 1px solid var(--vscode-input-border);
-    border-radius: 3px; color: var(--vscode-input-foreground);
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 3px; color: var(--fg);
     font-family: inherit; font-size: 12px; cursor: pointer; text-align: center;
   }
-  .sidebar-new:hover { background: var(--vscode-list-hoverBackground); }
+  .sidebar-new:hover { background: var(--bg-hover); }
 
-  .session-list { overflow-y: auto; max-height: 320px; }
+  .session-list { overflow-y: auto; flex:1; }
   .session-item {
     padding: 5px 24px; cursor: pointer;
     display: flex; align-items: center; justify-content: space-between;
   }
-  .session-item:hover { background: var(--vscode-list-hoverBackground); }
-  .session-item.active { background: var(--vscode-list-activeSelectionBackground); }
-  .session-item.active .title { color: var(--vscode-list-activeSelectionForeground); }
-  .session-item .info { overflow: hidden; flex:1; }
-  .session-item .title {
-    font-size: 13px; color: var(--vscode-sideBar-foreground);
+  .session-item:hover { background: var(--bg-hover); }
+  .session-item.active { background: var(--bg-active); }
+  .session-item.active .s-title { color: #fff; }
+  .session-item .s-info { overflow: hidden; flex:1; }
+  .session-item .s-title {
+    font-size: 13px; color: var(--fg);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;
   }
-  .session-item .meta { font-size: 11px; color: var(--vscode-editorLineNumber-foreground); margin-top:1px; }
-  .session-item .actions { display:flex; gap:2px; opacity:0; }
-  .session-item:hover .actions { opacity:1; }
-  .session-item .actions button {
-    background: none; border: none; color: var(--vscode-editorLineNumber-foreground);
+  .session-item .s-meta { font-size: 11px; color: var(--fg-dim); margin-top:1px; }
+  .session-item .s-actions { display:flex; gap:2px; opacity:0; }
+  .session-item:hover .s-actions { opacity:1; }
+  .s-actions button {
+    background: none; border: none; color: var(--fg-dim);
     cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 3px;
   }
-  .session-item .actions button:hover { background: var(--vscode-list-hoverBackground); color: var(--vscode-editor-foreground); }
-  .session-item .actions button.del:hover { color: #f44747; }
+  .s-actions button:hover { background: var(--bg-hover); color: var(--fg); }
+  .s-actions button.del:hover { color: var(--red); }
 
   .memory-box { padding: 8px 12px; }
   .memory-box input {
     width: 100%; padding: 4px 8px;
-    background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border);
-    border-radius: 3px; color: var(--vscode-input-foreground);
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 3px; color: var(--fg);
     font-family: inherit; font-size: 12px; outline: none;
   }
-  .memory-box input:focus { border-color: var(--vscode-focusBorder); }
-  .memory-box input::placeholder { color: var(--vscode-input-placeholderForeground); }
+  .memory-box input:focus { border-color: var(--accent); }
+  .memory-box input::placeholder { color: #a6a6a6; }
   .memory-list { overflow-y: auto; flex:1; }
   .memory-item { padding: 6px 12px; cursor: pointer; }
-  .memory-item:hover { background: var(--vscode-list-hoverBackground); }
-  .memory-item .mem-title { font-size: 12px; color: var(--vscode-sideBar-foreground); margin-bottom:2px; }
+  .memory-item:hover { background: var(--bg-hover); }
+  .memory-item .mem-title { font-size: 12px; color: var(--fg); margin-bottom:2px; }
   .memory-item .mem-preview {
-    font-size: 11px; color: var(--vscode-editorLineNumber-foreground);
-    overflow: hidden; display: -webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    font-size: 11px; color: var(--fg-dim);
+    overflow: hidden; display: -webkit-box;
+    -webkit-line-clamp:2; -webkit-box-orient:vertical;
   }
-  .memory-empty { text-align:center; padding:20px; font-size:12px; color: var(--vscode-editorLineNumber-foreground); }
+  .memory-empty { text-align:center; padding:20px; font-size:12px; color: var(--fg-dim); }
 
-  /* ═══ 主区域 ═══ */
-  .main {
-    grid-row: 1; grid-column: 3;
-    display: flex; flex-direction: column; min-width: 0;
-  }
+  /* ── 主区域 ── */
+  .main { flex:1; display:flex; flex-direction:column; min-width:0; }
 
   .tabs-bar {
     display: flex; align-items: center;
-    background: var(--vscode-tab-background); min-height: 35px;
-    border-bottom: 1px solid var(--vscode-tab-border);
+    background: var(--bg-tab); min-height: 35px;
   }
   .tabs-bar .tab {
-    padding: 8px 16px; font-size: 13px; color: var(--vscode-tab-activeForeground);
-    border-right: 1px solid var(--vscode-tab-border);
-    background: var(--vscode-tab-activeBackground); cursor: pointer;
+    padding: 8px 16px; font-size: 13px; color: #fff;
+    border-right: 1px solid #252526;
+    background: var(--bg-editor); cursor: pointer;
     display: flex; align-items: center; gap: 8px; white-space: nowrap;
-    border-top: 1px solid var(--vscode-tab-activeBorderTop);
+    border-top: 1px solid var(--accent);
   }
   .tabs-spacer { flex:1; }
-  .tab-model { padding: 4px 12px; font-size: 12px; color: var(--vscode-tab-inactiveForeground); display:flex; align-items:center; gap:6px; border-left:1px solid var(--vscode-tab-border); }
+  .tab-model { padding: 4px 12px; display:flex; align-items:center; gap:6px; border-left:1px solid #252526; }
   .tab-model select {
-    background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground);
-    border: 1px solid var(--vscode-dropdown-border); border-radius: 3px;
+    background: var(--bg-input); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 3px;
     padding: 2px 6px; font-size: 12px; font-family: inherit; outline: none;
   }
 
-  .editor-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .editor-area { flex:1; display:flex; flex-direction:column; overflow:hidden; background: var(--bg-editor); }
+
   .chat { flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
 
-  .welcome { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color: #858585; gap:8px; }
-  .welcome-icon { font-size:3rem; opacity:0.3; }
-  .welcome-title { font-size:1.2rem; font-weight:500; color: #d4d4d4; }
-  .welcome-sub { font-size:0.85rem; opacity:0.7; }
-
-  .msg { max-width:80%; padding:10px 16px; line-height:1.6; font-size:14px; animation: msgIn 0.2s ease-out; word-break:break-word; }
-  @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-  .msg.user { align-self:flex-end; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-radius:8px; margin-left:60px; }
-  .msg.assistant { align-self:flex-start; background: var(--vscode-editorWidget-background); color: var(--vscode-editor-foreground); border-radius:8px; border:1px solid var(--vscode-editorWidget-border); margin-right:60px; white-space:pre-wrap; }
-  .msg.assistant code { font-family: 'JetBrains Mono', monospace; font-size:13px; background: var(--vscode-editor-lineHighlightBackground); padding:2px 6px; border-radius:3px; }
-  .msg.assistant pre { background: rgba(0,0,0,0.2); padding:12px; border-radius:6px; overflow-x:auto; margin:8px 0; border: 1px solid var(--vscode-editorWidget-border); }
-  .msg.assistant pre code { background:none; padding:0; }
-  .msg.tool { align-self:flex-start; display:flex; align-items:center; gap:8px; font-size:12px; color: var(--vscode-editorLineNumber-foreground); padding:4px 0; font-family: 'JetBrains Mono', monospace; }
-  .msg.tool .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-  .msg.tool.tool-start .dot { background: var(--vscode-gitDecoration-addedResourceForeground); }
-  .msg.tool.tool-end .dot { background: var(--vscode-gitDecoration-modifiedResourceForeground); }
-  .msg.tool.tool-error .dot { background: var(--vscode-gitDecoration-deletedResourceForeground); }
-
-  .input-bar { padding:10px 16px; background: var(--vscode-editorWidget-background); border-top: 1px solid var(--vscode-editorWidget-border); }
-  .input-wrap { display:flex; gap:8px; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 6px; padding:4px; }
-  .input-wrap:focus-within { border-color: var(--vscode-focusBorder); }
-  .input-wrap textarea { flex:1; padding:8px 10px; background:transparent; border:none; color: var(--vscode-input-foreground); font-family:inherit; font-size:13px; resize:none; outline:none; max-height:100px; line-height:1.5; }
-  .input-wrap textarea::placeholder { color: var(--vscode-input-placeholderForeground); }
-  .input-wrap button { padding:8px 14px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border:none; border-radius:4px; font-family:inherit; font-size:13px; font-weight:500; cursor:pointer; flex-shrink:0; align-self:flex-end; }
-  .input-wrap button:hover { background: var(--vscode-button-hoverBackground); }
-
-  #switchNotify { display:none; padding:6px 16px; text-align:center; background: rgba(0,122,204,0.1); border-bottom: 1px solid rgba(0,122,204,0.2); font-size:12px; color: var(--vscode-focusBorder); }
-
-  /* ═══ 底部面板 ═══ */
-  .panel {
-    grid-row: 2; grid-column: 2 / -1;
-    background: var(--vscode-panel-background);
-    border-top: 1px solid var(--vscode-panel-border);
-    z-index: 5; display: flex; flex-direction: column;
+  .welcome {
+    flex:1; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    text-align:center; color: var(--fg-dim); gap:12px;
   }
-  .panel-tabs { display:flex; align-items:center; background: var(--vscode-editorWidget-background); border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border); padding:0 8px; }
-  .panel-tab { padding:4px 12px; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color: var(--vscode-panelTitle-inactiveForeground); cursor:pointer; border:none; background:transparent; font-family:inherit; border-bottom:1px solid transparent; }
-  .panel-tab:hover { color: var(--vscode-panelTitle-activeForeground); }
-  .panel-tab.active { color: var(--vscode-panelTitle-activeForeground); border-bottom-color: var(--vscode-panelTitle-activeForeground); }
-  .panel-content { padding:8px 12px; font-size:12px; font-family: 'JetBrains Mono', monospace; color: var(--vscode-editorLineNumber-foreground); display:none; height:100%; overflow-y:auto; white-space:pre-wrap; }
+  .welcome-icon { font-size:3.5rem; opacity:0.25; }
+  .welcome-title { font-size:1.2rem; font-weight:600; color: var(--fg); }
+  .welcome-sub { font-size:0.85rem; opacity:0.6; }
+
+  .msg { max-width:80%; padding:10px 16px; line-height:1.6; font-size:14px; animation: msgIn 0.2s; word-break:break-word; }
+  @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  .msg.user { align-self:flex-end; background: var(--accent-btn); color: #fff; border-radius:8px; margin-left:60px; }
+  .msg.assistant { align-self:flex-start; background: var(--bg-widget); color: var(--fg); border-radius:8px; border:1px solid #454545; margin-right:60px; white-space:pre-wrap; }
+  .msg.assistant code { font-family: 'JetBrains Mono', monospace; font-size:13px; background: rgba(255,255,255,0.06); padding:2px 6px; border-radius:3px; }
+  .msg.assistant pre { background: rgba(0,0,0,0.2); padding:12px; border-radius:6px; overflow-x:auto; margin:8px 0; border: 1px solid #454545; }
+  .msg.assistant pre code { background:none; padding:0; }
+  .msg.tool { align-self:flex-start; display:flex; align-items:center; gap:8px; font-size:12px; color: var(--fg-dim); padding:4px 0; font-family: 'JetBrains Mono', monospace; }
+  .msg.tool .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .msg.tool-start .dot { background: var(--green); }
+  .msg.tool-end .dot { background: #e2c08d; }
+  .msg.tool-error .dot { background: var(--red); }
+
+  .input-bar { padding:10px 16px; background: var(--bg-widget); border-top: 1px solid #454545; }
+  .input-wrap { display:flex; gap:8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; padding:4px; }
+  .input-wrap:focus-within { border-color: var(--accent); }
+  .input-wrap textarea {
+    flex:1; padding:8px 10px; background:transparent; border:none;
+    color: var(--fg); font-family: inherit; font-size: 13px;
+    resize:none; outline:none; max-height:100px; line-height:1.5;
+  }
+  .input-wrap textarea::placeholder { color: #a6a6a6; }
+  .input-wrap button {
+    padding:8px 14px; background: var(--accent-btn); color: #fff;
+    border:none; border-radius:4px; font-family: inherit; font-size: 13px;
+    font-weight: 500; cursor:pointer; flex-shrink:0; align-self:flex-end;
+  }
+  .input-wrap button:hover { background: #1177bb; }
+
+  #switchNotify {
+    display:none; padding:6px 16px; text-align:center;
+    background: rgba(0,122,204,0.1); font-size:12px; color: var(--accent);
+  }
+
+  /* ── 底部面板 ── */
+  .panel { background: var(--bg-editor); border-top: 1px solid #80808059; display: none; flex-direction: column; }
+  .panel.open { display: flex; height: 200px; }
+  .panel-tabs { display:flex; background: var(--bg-widget); border-bottom: 1px solid var(--border); padding:0 8px; }
+  .panel-tab { padding:4px 12px; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color: #e7e7e799; cursor:pointer; border:none; background:transparent; font-family:inherit; border-bottom:1px solid transparent; }
+  .panel-tab:hover { color: #e7e7e7; }
+  .panel-tab.active { color: #e7e7e7; border-bottom-color: #e7e7e7; }
+  .panel-content { flex:1; padding:8px 12px; font-size:12px; font-family: 'JetBrains Mono', monospace; color: var(--fg-dim); display:none; overflow-y:auto; white-space:pre-wrap; }
   .panel-content.active { display:block; }
 
-  /* ═══ 状态栏 ═══ */
+  /* ── 状态栏 ── */
   .status-bar {
-    grid-row: 3; grid-column: 1 / -1;
-    background: var(--vscode-statusBar-background); color: var(--vscode-statusBar-foreground);
-    display: flex; align-items: center; padding: 0 10px; gap: 12px; font-size: 12px; z-index: 10;
+    height: 22px; flex-shrink:0;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; padding: 0 10px; gap: 12px; font-size: 12px;
   }
   .status-item { display:flex; align-items:center; gap:4px; }
   .status-spacer { flex:1; }
-  .status-dot { width:6px; height:6px; border-radius:50%; background: var(--vscode-gitDecoration-addedResourceForeground); }
+  .status-dot { width:6px; height:6px; border-radius:50%; background: var(--green); }
 
-  /* scrollbar */
-  .chat::-webkit-scrollbar, .session-list::-webkit-scrollbar, .memory-list::-webkit-scrollbar { width:10px; }
-  .chat::-webkit-scrollbar-thumb, .session-list::-webkit-scrollbar-thumb { background: var(--vscode-scrollbarSlider-background); }
-  .chat::-webkit-scrollbar-thumb:hover, .session-list::-webkit-scrollbar-thumb:hover { background: var(--vscode-scrollbarSlider-hoverBackground); }
+  .chat::-webkit-scrollbar, .session-list::-webkit-scrollbar { width:10px; }
+  .chat::-webkit-scrollbar-thumb, .session-list::-webkit-scrollbar-thumb { background: var(--scroll); }
 
   @media (max-width:700px) {
-    body { grid-template-columns: 1fr; grid-template-rows: 1fr 22px; }
-    .activity-bar, .sidebar, .panel { display:none; }
+    .activity-bar, .sidebar, .panel { display:none !important; }
   }
 </style>
 </head>
 <body>
 
+<div class="app-body">
+
+<!-- 活动栏 -->
 <nav class="activity-bar" id="activityBar">
   <div class="act-top">
     <button class="act-btn active" data-panel="explorer" title="Explorer (Ctrl+Shift+E)">📁</button>
     <button class="act-btn" data-panel="memory" title="Memory (Ctrl+Shift+M)">🧠</button>
     <button class="act-btn" data-panel="chat" title="Chat">💬</button>
   </div>
-  <div class="act-bot">
-    <button class="act-btn" title="Settings">⚙</button>
-  </div>
+  <div class="act-bot"><button class="act-btn" title="Settings">⚙</button></div>
 </nav>
 
+<!-- 侧边栏 -->
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-section">
-    <div class="section-header" onclick="this.nextElementSibling.classList.toggle('collapsed')">
-      <span>▾ EXPLORER</span>
-      <span style="cursor:pointer;font-size:14px" onclick="event.stopPropagation();newSession()" title="New Chat">+</span>
-    </div>
-    <div class="section-body">
-      <div class="sidebar-section" style="border:none">
-        <div class="section-header" onclick="this.nextElementSibling.classList.toggle('collapsed')">▸ CAMELIA STUDIO</div>
-        <div class="section-body" id="sessionSection">
-          <div class="session-list" id="sessionList"></div>
-        </div>
-      </div>
-    </div>
+  <div class="section-header" onclick="this.nextElementSibling.classList.toggle('collapsed')">
+    <span>▾ EXPLORER</span>
+    <span style="cursor:pointer;font-size:14px" onclick="event.stopPropagation();newSession()">+</span>
   </div>
-  <div class="sidebar-section" id="memorySection" style="display:none">
+  <div class="section-body">
+    <div class="section-header" onclick="this.nextElementSibling.classList.toggle('collapsed')" style="border:none">▸ CAMELIA STUDIO</div>
+    <div class="section-body"><div class="session-list" id="sessionList"></div></div>
+  </div>
+  <div id="memorySection" style="display:none;flex:1;flex-direction:column;">
     <div class="section-header">▾ MEMORY</div>
-    <div class="section-body">
-      <div class="memory-box"><input type="text" id="memorySearchInput" placeholder="Search memories..." oninput="searchMemory()"></div>
-      <div class="memory-list" id="memoryList"><div class="memory-empty">Type to search</div></div>
-    </div>
+    <div class="memory-box"><input type="text" id="memorySearchInput" placeholder="Search memories..." oninput="searchMemory()"></div>
+    <div class="memory-list" id="memoryList"><div class="memory-empty">Type to search</div></div>
   </div>
 </aside>
 
+<!-- 主区域 -->
 <div class="main">
   <div class="tabs-bar">
     <div class="tab active"><span>💬</span><span>Camelia Chat</span></div>
@@ -313,201 +275,559 @@
     </div>
     <div class="input-bar">
       <div class="input-wrap">
-        <textarea id="input" rows="1" placeholder="Ask anything... (Enter send, Shift+Enter newline)" onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
+        <textarea id="input" rows="1" placeholder="Ask anything... (Enter send, Shift+Enter newline)"
+          onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
         <button onclick="send()">Send</button>
       </div>
     </div>
   </div>
 </div>
 
-<div class="panel">
+</div><!-- /app-body -->
+
+<!-- 底部面板 -->
+<div class="panel" id="bottomPanel">
   <div class="panel-tabs">
-    <button class="panel-tab active" onclick="activatePanelTab('output')">OUTPUT</button>
-    <button class="panel-tab" onclick="activatePanelTab('memory')">MEMORY LOG</button>
+    <button class="panel-tab active" onclick="switchPanelTab('output')">OUTPUT</button>
+    <button class="panel-tab" onclick="switchPanelTab('memory')">MEMORY LOG</button>
   </div>
-  <div class="panel-content active" data-panel="output" id="panelOutput">Camelia Studio — Ready.</div>
-  <div class="panel-content" data-panel="memory" id="panelMemory"></div>
+  <div class="panel-content active" data-ptab="output" id="panelOutput">Camelia Studio — Ready.</div>
+  <div class="panel-content" data-ptab="memory" id="panelMemory"></div>
 </div>
 
+<!-- 状态栏 -->
 <footer class="status-bar">
   <span class="status-item"><span class="status-dot"></span> connected</span>
-  <span class="status-item" id="statusModel">deepseek-chat</span>
+  <span class="status-item" id="statusModel">loading...</span>
   <span class="status-spacer"></span>
   <span class="status-item" id="statusSession"></span>
   <span class="status-item" id="statusMem">🧠 0</span>
 </footer>
 
 <script>
-let sessionId=null,streamDiv=null,isGenerating=false,pendingModelSwitch=null;
-const chat=document.getElementById("chat"),input=document.getElementById("input");
+'use strict';
 
-// ── 活动栏切换 ──
-document.getElementById("activityBar").addEventListener("click",e=>{
-  const btn=e.target.closest(".act-btn"); if(!btn||!btn.dataset.panel)return;
-  document.querySelectorAll(".act-btn").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
-  const p=btn.dataset.panel,s=document.getElementById("sidebar"),ms=document.getElementById("memorySection");
-  if(p==="memory"){ms.style.display="";s.classList.remove("collapsed");searchMemory();}
-  else if(p==="explorer"){ms.style.display="none";s.classList.remove("collapsed");loadSessionList();}
-  else if(p==="chat")s.classList.add("collapsed");
+// ═══ 状态 ═══
+let sessionId = null;
+let streamDiv = null;
+let isGenerating = false;
+let pendingModelSwitch = null;
+
+const chat   = document.getElementById('chat');
+const input  = document.getElementById('input');
+const welcome= document.getElementById('welcome');
+
+// ═══ 活动栏 ═══
+document.getElementById('activityBar').addEventListener('click', function(e) {
+  var btn = e.target.closest('.act-btn');
+  if (!btn || !btn.dataset.panel) return;
+  // 激活样式
+  document.querySelectorAll('.act-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+
+  var panel = btn.dataset.panel;
+  var sidebar = document.getElementById('sidebar');
+  var memSec = document.getElementById('memorySection');
+
+  if (panel === 'memory') {
+    memSec.style.display = 'flex';
+    sidebar.classList.remove('collapsed');
+    searchMemory();
+  } else if (panel === 'explorer') {
+    memSec.style.display = 'none';
+    sidebar.classList.remove('collapsed');
+    loadSessionList();
+  } else if (panel === 'chat') {
+    sidebar.classList.add('collapsed');
+  }
 });
 
-function activatePanelTab(n){
-  document.querySelectorAll(".panel-tab").forEach(t=>t.classList.toggle("active",t.textContent.trim().toLowerCase().includes(n)));
-  document.querySelectorAll(".panel-content").forEach(p=>p.classList.toggle("active",p.dataset.panel===n));
-}
+// ═══ 面板 ═══
+window.switchPanelTab = function(name) {
+  document.querySelectorAll('.panel-tab').forEach(function(t) {
+    t.classList.toggle('active', t.textContent.trim().toLowerCase().indexOf(name) >= 0);
+  });
+  document.querySelectorAll('.panel-content').forEach(function(p) {
+    p.classList.toggle('active', p.dataset.ptab === name);
+  });
+};
 
-document.addEventListener("keydown",e=>{
-  if(e.ctrlKey&&e.shiftKey&&e.key==="E"){e.preventDefault();document.querySelector('.act-btn[data-panel="explorer"]')?.click();}
-  if(e.ctrlKey&&e.shiftKey&&e.key==="M"){e.preventDefault();document.querySelector('.act-btn[data-panel="memory"]')?.click();}
-  if(e.ctrlKey&&e.key==="b"){e.preventDefault();document.getElementById("sidebar").classList.toggle("collapsed");}
-  if(e.ctrlKey&&e.key==="j"){e.preventDefault();const r=document.documentElement.style;r.setProperty("--panel-h",r.getPropertyValue("--panel-h")==="0px"?"200px":"0px");}
+// ═══ 快捷键 ═══
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+    e.preventDefault();
+    var btn = document.querySelector('.act-btn[data-panel="explorer"]');
+    if (btn) btn.click();
+  }
+  if (e.ctrlKey && e.shiftKey && e.key === 'M') {
+    e.preventDefault();
+    var btn = document.querySelector('.act-btn[data-panel="memory"]');
+    if (btn) btn.click();
+  }
+  if (e.ctrlKey && e.key === 'b') {
+    e.preventDefault();
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
+  if (e.ctrlKey && e.key === 'j') {
+    e.preventDefault();
+    document.getElementById('bottomPanel').classList.toggle('open');
+  }
 });
 
-// ── WebSocket ──
-let ws=null;
-function createWebSocket(){
-  if(ws)try{ws.close()}catch(e){}
-  ws=new WebSocket("ws://"+location.host+"/ws");
-  ws.onmessage=handleWsMessage;
-  ws.onopen=()=>{if(sessionId)ws.send(JSON.stringify({type:"reconnect",session_id:sessionId}))};
+// ═══ WebSocket ═══
+var ws = null;
+function createWebSocket() {
+  if (ws) { try { ws.close(); } catch(e) {} }
+  ws = new WebSocket('ws://' + location.host + '/ws');
+  ws.onmessage = handleWsMessage;
+  ws.onopen = function() {
+    if (sessionId) {
+      ws.send(JSON.stringify({ type: 'reconnect', session_id: sessionId }));
+    }
+  };
+  ws.onerror = function(e) { console.error('WS error', e); };
 }
 createWebSocket();
 
-// ── Sessions ──
-async function loadSessionList(){
-  try{
-    const d=await(await fetch("/api/sessions")).json();
-    const list=document.getElementById("sessionList"); list.innerHTML="";
-    d.sessions.forEach(s=>{
-      const div=document.createElement("div");
-      div.className="session-item"+(s.id===sessionId?" active":"");
-      const info=document.createElement("div");info.className="info";
-      const t=document.createElement("div");t.className="title";t.textContent=s.title||"(empty)";
-      const m=document.createElement("div");m.className="meta";m.textContent=s.count+" msgs";
-      info.appendChild(t);info.appendChild(m);
-      const acts=document.createElement("div");acts.className="actions";
-      const star=document.createElement("button");star.textContent=s.starred?"⭐":"☆";
-      star.onclick=e=>{e.stopPropagation();toggleStar(s.id,star)};
-      const del=document.createElement("button");del.className="del";del.textContent="✕";
-      del.onclick=e=>{e.stopPropagation();delSession(s.id)};
-      acts.appendChild(star);acts.appendChild(del);
-      div.appendChild(info);div.appendChild(acts);
-      div.onclick=()=>switchSession(s.id);
+// ═══ 会话列表 ═══
+async function loadSessionList() {
+  try {
+    var res = await fetch('/api/sessions');
+    var data = await res.json();
+    var list = document.getElementById('sessionList');
+    list.innerHTML = '';
+    data.sessions.forEach(function(s) {
+      var div = document.createElement('div');
+      div.className = 'session-item' + (s.id === sessionId ? ' active' : '');
+
+      var info = document.createElement('div'); info.className = 's-info';
+      var title = document.createElement('div'); title.className = 's-title';
+      title.textContent = s.title || '(empty)';
+      var meta = document.createElement('div'); meta.className = 's-meta';
+      meta.textContent = s.count + ' msgs';
+      info.appendChild(title); info.appendChild(meta);
+
+      var acts = document.createElement('div'); acts.className = 's-actions';
+      var star = document.createElement('button');
+      star.textContent = s.starred ? '⭐' : '☆';
+      star.onclick = function(e) { e.stopPropagation(); toggleStar(s.id, star); };
+      var del = document.createElement('button'); del.className = 'del';
+      del.textContent = '✕';
+      del.onclick = function(e) { e.stopPropagation(); delSession(s.id); };
+      acts.appendChild(star); acts.appendChild(del);
+
+      div.appendChild(info); div.appendChild(acts);
+      div.onclick = function() { switchSession(s.id); };
       list.appendChild(div);
     });
-  }catch(e){console.error(e)}
+  } catch(err) {
+    console.error('loadSessionList:', err);
+  }
 }
 
-function escapeHtml(s){const d=document.createElement("div");d.textContent=s;return d.innerHTML}
-function renderMarkdown(t){let h=escapeHtml(t);h=h.replace(/```(\w*)\n?([\s\S]*?)```/g,'<pre><code>$2</code></pre>');h=h.replace(/`([^`]+)`/g,'<code>$1</code>');return h}
-
-async function switchSession(id){
-  try{
-    sessionId=id;await loadSessionList();chat.innerHTML="";
-    const w=document.getElementById("welcome");if(w)w.style.display="none";
-    const d=await(await fetch("/api/sessions/"+id)).json();
-    d.messages.forEach(m=>{if(m.role==="user")addMsg("user",m.content);else if(m.role==="assistant")addMsg("assistant",m.content)});
-    document.getElementById("statusSession").textContent=id||"";chat.scrollTop=chat.scrollHeight;
-  }catch(e){console.error(e)}
+function escapeHtml(str) {
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
 }
 
-async function toggleStar(id,btn){const d=await(await fetch("/api/sessions/"+id+"/star",{method:"POST"})).json();if(d.ok){btn.textContent=d.starred?"⭐":"☆";loadSessionList()}}
-async function delSession(id){
-  await fetch("/api/sessions/"+id,{method:"DELETE"});
-  if(sessionId===id){sessionId=null;chat.innerHTML="";document.getElementById("welcome").style.display="";try{const d=await(await fetch("/api/sessions")).json();if(d.sessions&&d.sessions.length>0){await switchSession(d.sessions[0].id);return}}catch(e){}}
+function renderMarkdown(text) {
+  var html = escapeHtml(text);
+  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  return html;
+}
+
+async function switchSession(id) {
+  try {
+    sessionId = id;
+    await loadSessionList();
+    chat.innerHTML = '';
+    if (welcome) welcome.style.display = 'none';
+    var res = await fetch('/api/sessions/' + id);
+    if (!res.ok) { console.error('load session failed:', res.status); return; }
+    var data = await res.json();
+    data.messages.forEach(function(m) {
+      if (m.role === 'user') addMsg('user', m.content);
+      else if (m.role === 'assistant') addMsg('assistant', m.content);
+    });
+    document.getElementById('statusSession').textContent = id || '';
+    chat.scrollTop = chat.scrollHeight;
+  } catch(err) {
+    console.error('switchSession:', err);
+  }
+}
+
+async function toggleStar(id, btn) {
+  try {
+    var res = await fetch('/api/sessions/' + id + '/star', { method: 'POST' });
+    var data = await res.json();
+    if (data.ok) {
+      btn.textContent = data.starred ? '⭐' : '☆';
+      loadSessionList();
+    }
+  } catch(err) { console.error(err); }
+}
+
+async function delSession(id) {
+  await fetch('/api/sessions/' + id, { method: 'DELETE' });
+  if (sessionId === id) {
+    sessionId = null;
+    chat.innerHTML = '';
+    if (welcome) welcome.style.display = '';
+    document.getElementById('statusSession').textContent = '';
+    try {
+      var res = await fetch('/api/sessions');
+      var data = await res.json();
+      if (data.sessions && data.sessions.length > 0) {
+        await switchSession(data.sessions[0].id);
+        return;
+      }
+    } catch(e) {}
+  }
   loadSessionList();
 }
-async function newSession(){sessionId=null;isGenerating=false;pendingModelSwitch=null;hideSwitchNotification();chat.innerHTML="";document.getElementById("welcome").style.display="";document.getElementById("statusSession").textContent="";loadSessionList()}
 
-// ── Memory ──
-let memTimer=null;
-async function searchMemory(){clearTimeout(memTimer);memTimer=setTimeout(async()=>{
-  const q=document.getElementById("memorySearchInput").value.trim(),list=document.getElementById("memoryList");
-  if(!q){list.innerHTML='<div class="memory-empty">Type to search</div>';return}
-  list.innerHTML='<div class="memory-empty">Searching...</div>';
-  try{
-    const d=await(await fetch("/api/memory/search?q="+encodeURIComponent(q))).json();
-    if(!d.memories||!d.memories.length){list.innerHTML='<div class="memory-empty">No results</div>';return}
-    list.innerHTML="";d.memories.forEach(m=>{const div=document.createElement("div");div.className="memory-item";const t=document.createElement("div");t.className="mem-title";t.textContent=(m.metadata&&m.metadata.title)||"Memory";const p=document.createElement("div");p.className="mem-preview";p.textContent=m.content||"";div.appendChild(t);div.appendChild(p);list.appendChild(div)})
-  }catch(e){list.innerHTML='<div class="memory-empty">Search failed</div>'}
-},400)}
-
-async function loadMemoryStats(){try{const d=await(await fetch("/api/memory/stats")).json();document.getElementById("statusMem").textContent="🧠 "+(d.count||0)}catch(e){}}
-
-// ── Messages ──
-function addMsg(role,text){
-  const w=document.getElementById("welcome");if(w)w.style.display="none";
-  const div=document.createElement("div");
-  if(role==="user"){div.className="msg user";div.textContent=text}
-  else if(role==="assistant"){div.className="msg assistant";div.innerHTML=renderMarkdown(text)}
-  else if(role.startsWith("tool-")){div.className="msg tool "+role;const dot=document.createElement("span");dot.className="dot";const span=document.createElement("span");span.textContent=text;div.appendChild(dot);div.appendChild(span)}
-  chat.appendChild(div);chat.scrollTo({top:chat.scrollHeight,behavior:"smooth"})
+async function newSession() {
+  sessionId = null;
+  isGenerating = false;
+  pendingModelSwitch = null;
+  hideSwitchNotification();
+  chat.innerHTML = '';
+  if (welcome) welcome.style.display = '';
+  document.getElementById('statusSession').textContent = '';
+  loadSessionList();
 }
 
-// ── WS handler ──
-function handleWsMessage(e){
-  try{
-    const ev=JSON.parse(e.data);
-    if(ev.type==="reconnected"){if(ev.session_id)sessionId=ev.session_id;loadSessionList();processQueue();return}
-    if(ev.type==="session_created"){sessionId=ev.session_id;document.getElementById("statusSession").textContent=sessionId;loadSessionList();isGenerating=false}
-    else if(ev.type==="session_saved"){loadSessionList();loadMemoryStats()}
-    else if(ev.type==="session_renamed"){loadSessionList()}
-    else if(ev.type==="memory_found"){document.getElementById("panelMemory").textContent=ev.count+" relevant memories found"}
-    else if(ev.type==="tool_start"){isGenerating=true;streamDiv=null;addMsg("tool-tool-start","🔧 "+ev.name+"...");document.getElementById("panelOutput").textContent="🔧 "+ev.name}
-    else if(ev.type==="tool_end"){addMsg("tool-tool-end",ev.name+" → "+(ev.result||"").slice(0,100));document.getElementById("panelOutput").textContent="✅ "+ev.name}
-    else if(ev.type==="stream"){isGenerating=true;document.getElementById("welcome").style.display="none";if(!streamDiv){streamDiv=document.createElement("div");streamDiv.className="msg assistant";chat.appendChild(streamDiv)}streamDiv.textContent=(streamDiv.textContent||"")+ev.content;chat.scrollTo({top:chat.scrollHeight,behavior:"smooth"})}
-    else if(ev.type==="text"){if(streamDiv){streamDiv.innerHTML=renderMarkdown(ev.content);streamDiv=null}else addMsg("assistant",ev.content);finishGeneration()}
-    else if(ev.type==="error"){streamDiv=null;addMsg("tool-tool-error",ev.content);finishGeneration()}
-  }catch(e){console.error(e)}
+// ═══ 记忆 ═══
+var memTimer = null;
+async function searchMemory() {
+  clearTimeout(memTimer);
+  memTimer = setTimeout(async function() {
+    var q = document.getElementById('memorySearchInput').value.trim();
+    var list = document.getElementById('memoryList');
+    if (!q) { list.innerHTML = '<div class="memory-empty">Type to search</div>'; return; }
+    list.innerHTML = '<div class="memory-empty">Searching...</div>';
+    try {
+      var res = await fetch('/api/memory/search?q=' + encodeURIComponent(q));
+      var data = await res.json();
+      if (!data.memories || data.memories.length === 0) {
+        list.innerHTML = '<div class="memory-empty">No results</div>'; return;
+      }
+      list.innerHTML = '';
+      data.memories.forEach(function(mem) {
+        var div = document.createElement('div'); div.className = 'memory-item';
+        var t = document.createElement('div'); t.className = 'mem-title';
+        t.textContent = (mem.metadata && mem.metadata.title) || 'Memory';
+        var p = document.createElement('div'); p.className = 'mem-preview';
+        p.textContent = mem.content || '';
+        div.appendChild(t); div.appendChild(p);
+        list.appendChild(div);
+      });
+    } catch(err) {
+      list.innerHTML = '<div class="memory-empty">Search failed</div>';
+    }
+  }, 400);
 }
 
-function finishGeneration(){isGenerating=false;if(pendingModelSwitch){const{providerId,model}=pendingModelSwitch;pendingModelSwitch=null;hideSwitchNotification();applyModelSwitch(providerId,model);return}processQueue()}
-
-// ── Send + Queue ──
-let messageQueue=[];
-function send(){const t=input.value.trim();if(!t)return;input.value="";autoResize(input);if(isGenerating||pendingModelSwitch){messageQueue.push(t);showSwitchNotification("Queued ("+messageQueue.length+")");return}deliverMessage(t)}
-function deliverMessage(t){try{addMsg("user",t);isGenerating=true;ws.send(JSON.stringify({content:t,session_id:sessionId}))}catch(e){console.error(e)}}
-function processQueue(){if(messageQueue.length>0){hideSwitchNotification();deliverMessage(messageQueue.shift())}}
-function onKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}
-function autoResize(e){e.style.height="auto";e.style.height=Math.min(e.scrollHeight,100)+"px"}
-
-// ── Model switch ──
-let modelOptions=[];
-async function initModelSwitcher(){
-  const s=document.getElementById("modelSelect");
-  try{
-    let cur="deepseek-chat";try{cur=(await(await fetch("/api/config")).json()).model||cur}catch(e){}
-    if(window.settings&&window.settings.getProviders){const d=await window.settings.getProviders();modelOptions=[];(d.providers||[]).forEach(p=>{if(!p.api_key||p.api_key==="****"||p.api_key==="***")return;(p.models||[]).forEach(m=>modelOptions.push({pid:p.id,pname:p.name,model:m}))})}
-    s.innerHTML="";if(!modelOptions.length)s.innerHTML='<option>No provider configured</option>';
-    else modelOptions.forEach(o=>{const opt=document.createElement("option");opt.value=o.pid+":::"+o.model;opt.textContent=o.pname+" / "+o.model;if(o.model===cur)opt.selected=true;s.appendChild(opt)})
-  }catch(e){s.innerHTML='<option>Error</option>'}
+async function loadMemoryStats() {
+  try {
+    var res = await fetch('/api/memory/stats');
+    var data = await res.json();
+    document.getElementById('statusMem').textContent = '🧠 ' + (data.count || 0);
+  } catch(err) {}
 }
 
-async function switchModel(){
-  const s=document.getElementById("modelSelect"),v=s.value;if(!v||!v.includes(":::"))return;
-  const[pid,model]=v.split(":::");
-  if(!window.settings||!window.settings.setActive){alert("Model switch only in desktop app");return}
-  if(isGenerating){s.disabled=true;try{const d=await window.settings.saveActive(pid,model);if(d.ok){pendingModelSwitch={providerId:pid,model};showSwitchNotification("Switching after reply...")}else{showSwitchNotification("Failed: "+d.error);s.disabled=false}}catch(e){showSwitchNotification("Failed: "+e.message);s.disabled=false};return}
-  s.disabled=true;applyModelSwitch(pid,model);
+// ═══ 消息渲染 ═══
+function addMsg(role, text) {
+  if (welcome) welcome.style.display = 'none';
+  var div = document.createElement('div');
+  if (role === 'user') {
+    div.className = 'msg user';
+    div.textContent = text;
+  } else if (role === 'assistant') {
+    div.className = 'msg assistant';
+    div.innerHTML = renderMarkdown(text);
+  } else if (role.indexOf('tool-') === 0) {
+    div.className = 'msg tool ' + role;
+    var dot = document.createElement('span'); dot.className = 'dot';
+    var span = document.createElement('span'); span.textContent = text;
+    div.appendChild(dot); div.appendChild(span);
+  }
+  chat.appendChild(div);
+  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
 }
-async function applyModelSwitch(pid,model){const s=document.getElementById("modelSelect");try{const d=await window.settings.setActive(pid,model);if(!d.ok){alert("Switch failed: "+d.error);s.disabled=false;return}createWebSocket();await new Promise(r=>setTimeout(r,800));await initModelSwitcher();s.disabled=false}catch(e){alert("Switch failed: "+e.message);s.disabled=false}}
-function showSwitchNotification(msg){const el=document.getElementById("switchNotify");el.textContent=msg;el.style.display="block";setTimeout(()=>el.style.display="none",4000)}
-function hideSwitchNotification(){document.getElementById("switchNotify").style.display="none"}
 
-// ── Status ──
-async function refreshStatus(){
-  try{const r=await fetch("/api/health");document.querySelector(".status-dot").style.background=r.ok?"var(--vscode-gitDecoration-addedResourceForeground)":"#f44747"}catch(e){document.querySelector(".status-dot").style.background="#f44747"}
-  try{document.getElementById("statusModel").textContent=(await(await fetch("/api/config")).json()).model||"--"}catch(e){}
+// ═══ WebSocket 消息处理 ═══
+function handleWsMessage(e) {
+  try {
+    var ev = JSON.parse(e.data);
+
+    if (ev.type === 'reconnected') {
+      if (ev.session_id) sessionId = ev.session_id;
+      loadSessionList();
+      processQueue();
+      return;
+    }
+    if (ev.type === 'session_created') {
+      sessionId = ev.session_id;
+      document.getElementById('statusSession').textContent = sessionId;
+      loadSessionList();
+      isGenerating = false;
+    } else if (ev.type === 'session_saved') {
+      loadSessionList();
+      loadMemoryStats();
+    } else if (ev.type === 'session_renamed') {
+      loadSessionList();
+    } else if (ev.type === 'memory_found') {
+      document.getElementById('panelMemory').textContent = ev.count + ' relevant memories found';
+    } else if (ev.type === 'tool_start') {
+      isGenerating = true;
+      streamDiv = null;
+      addMsg('tool-start', '🔧 ' + ev.name + '...');
+      document.getElementById('panelOutput').textContent = '🔧 ' + ev.name;
+    } else if (ev.type === 'tool_end') {
+      addMsg('tool-end', ev.name + ' → ' + (ev.result || '').slice(0, 100));
+      document.getElementById('panelOutput').textContent = '✅ ' + ev.name;
+    } else if (ev.type === 'stream') {
+      isGenerating = true;
+      if (welcome) welcome.style.display = 'none';
+      if (!streamDiv) {
+        streamDiv = document.createElement('div');
+        streamDiv.className = 'msg assistant';
+        chat.appendChild(streamDiv);
+      }
+      streamDiv.textContent = (streamDiv.textContent || '') + ev.content;
+      chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+    } else if (ev.type === 'text') {
+      if (streamDiv) {
+        streamDiv.innerHTML = renderMarkdown(ev.content);
+        streamDiv = null;
+      } else {
+        addMsg('assistant', ev.content);
+      }
+      finishGeneration();
+    } else if (ev.type === 'error') {
+      streamDiv = null;
+      addMsg('tool-error', ev.content);
+      finishGeneration();
+    }
+  } catch(err) {
+    console.error('handleWsMessage:', err, e.data);
+  }
+}
+
+function finishGeneration() {
+  isGenerating = false;
+  if (pendingModelSwitch) {
+    var sw = pendingModelSwitch;
+    pendingModelSwitch = null;
+    hideSwitchNotification();
+    applyModelSwitch(sw.providerId, sw.model);
+    return;
+  }
+  processQueue();
+}
+
+// ═══ 发送 + 队列 ═══
+var messageQueue = [];
+
+function send() {
+  var text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  autoResize(input);
+
+  if (isGenerating || pendingModelSwitch) {
+    messageQueue.push(text);
+    showSwitchNotification('Queued (' + messageQueue.length + ')');
+    return;
+  }
+  deliverMessage(text);
+}
+
+function deliverMessage(text) {
+  try {
+    addMsg('user', text);
+    isGenerating = true;
+    ws.send(JSON.stringify({ content: text, session_id: sessionId }));
+  } catch(err) {
+    console.error('deliverMessage:', err);
+    isGenerating = false;
+  }
+}
+
+function processQueue() {
+  if (messageQueue.length > 0) {
+    hideSwitchNotification();
+    deliverMessage(messageQueue.shift());
+  }
+}
+
+function onKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+// ═══ 模型切换 ═══
+var modelOptions = [];
+
+async function initModelSwitcher() {
+  var select = document.getElementById('modelSelect');
+  try {
+    // 获取当前模型
+    var curModel = 'deepseek-chat';
+    try {
+      var cfgRes = await fetch('/api/config');
+      var cfg    = await cfgRes.json();
+      curModel   = cfg.model || curModel;
+    } catch(e) {}
+
+    // Electron 模式：从 store 获取提供商列表
+    if (window.settings && window.settings.getProviders) {
+      var provData = await window.settings.getProviders();
+      modelOptions = [];
+      (provData.providers || []).forEach(function(p) {
+        if (!p.api_key || p.api_key === '****' || p.api_key === '***') return;
+        (p.models || []).forEach(function(m) {
+          modelOptions.push({ pid: p.id, pname: p.name, model: m });
+        });
+      });
+    }
+
+    // 填充下拉框
+    select.innerHTML = '';
+    if (!modelOptions.length) {
+      select.innerHTML = '<option>No provider configured</option>';
+    } else {
+      modelOptions.forEach(function(o) {
+        var opt = document.createElement('option');
+        opt.value = o.pid + ':::' + o.model;
+        opt.textContent = o.pname + ' / ' + o.model;
+        if (o.model === curModel) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+  } catch(err) {
+    console.error('initModelSwitcher:', err);
+    select.innerHTML = '<option>Error loading models</option>';
+  }
+}
+
+function switchModel() {
+  var select = document.getElementById('modelSelect');
+  var val = select.value;
+  if (!val || val.indexOf(':::') < 0) return;
+
+  var parts = val.split(':::');
+  var pid = parts[0], model = parts[1];
+
+  if (!window.settings || !window.settings.setActive) {
+    console.log('Model switch only available in desktop app');
+    return;
+  }
+
+  if (isGenerating) {
+    select.disabled = true;
+    window.settings.saveActive(pid, model).then(function(d) {
+      if (d.ok) {
+        pendingModelSwitch = { providerId: pid, model: model };
+        showSwitchNotification('Switching after reply...');
+      } else {
+        showSwitchNotification('Failed: ' + (d.error || 'unknown'));
+        select.disabled = false;
+      }
+    }).catch(function(e) {
+      showSwitchNotification('Failed: ' + e.message);
+      select.disabled = false;
+    });
+    return;
+  }
+
+  select.disabled = true;
+  applyModelSwitch(pid, model);
+}
+
+async function applyModelSwitch(pid, model) {
+  var select = document.getElementById('modelSelect');
+  try {
+    var data = await window.settings.setActive(pid, model);
+    if (!data.ok) {
+      console.error('Switch failed:', data.error);
+      select.disabled = false;
+      return;
+    }
+    createWebSocket();
+    await new Promise(function(r) { setTimeout(r, 800); });
+    await initModelSwitcher();
+    select.disabled = false;
+  } catch(err) {
+    console.error('applyModelSwitch:', err);
+    select.disabled = false;
+  }
+}
+
+function showSwitchNotification(msg) {
+  var el = document.getElementById('switchNotify');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 4000);
+}
+
+function hideSwitchNotification() {
+  document.getElementById('switchNotify').style.display = 'none';
+}
+
+// ═══ 状态刷新 ═══
+async function refreshStatus() {
+  // 健康检查
+  var dot = document.querySelector('.status-dot');
+  try {
+    var r = await fetch('/api/health');
+    dot.style.background = r.ok ? '#81b88b' : '#f44747';
+  } catch(err) {
+    dot.style.background = '#f44747';
+  }
+  // 模型名
+  try {
+    var cfgRes = await fetch('/api/config');
+    var cfg    = await cfgRes.json();
+    document.getElementById('statusModel').textContent = cfg.model || '--';
+  } catch(err) {}
+  // 记忆计数
   loadMemoryStats();
 }
 
-// ── Startup ──
-(async function(){
-  await initModelSwitcher();await loadSessionList();await refreshStatus();
-  try{const d=await(await fetch("/api/sessions")).json();if(d.sessions&&d.sessions.length>0)await switchSession(d.sessions[0].id)}catch(e){}
-})();
-setInterval(refreshStatus,30000);
+// ═══ 启动 ═══
+console.log('Camelia Studio starting...');
+initModelSwitcher().then(function() {
+  console.log('Model switcher ready');
+  return loadSessionList();
+}).then(function() {
+  console.log('Session list loaded');
+  return refreshStatus();
+}).then(function() {
+  console.log('Status refreshed');
+  // 自动恢复最近会话
+  return fetch('/api/sessions');
+}).then(function(res) {
+  return res.json();
+}).then(function(data) {
+  if (data.sessions && data.sessions.length > 0) {
+    return switchSession(data.sessions[0].id);
+  }
+}).catch(function(err) {
+  console.error('Startup error:', err);
+});
+
+setInterval(refreshStatus, 30000);
 </script>
 </body>
 </html>
