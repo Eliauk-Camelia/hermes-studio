@@ -147,10 +147,12 @@ LLM 返回 tool_calls 后，向 `messages` 插入两样东西：
 
 当前 dev/v0.0.5（开发中）。分支策略：`main` 是稳定标签线，`dev/v0.0.X` 是功能累积线。
 
-### 三层愿景（详见 ROADMAP.md）
+### 三大支柱（详见 ROADMAP.md）
 
 1. **IDE 壳** — Monaco Editor + xterm.js + 文件树，对标 VS Code 布局
-2. **嵌入式烧录** — OpenOCD / DSLite 一键烧录 + build + debug
+2. **嵌入式工具链**
+   - 一键烧录 — OpenOCD / DSLite 封装
+   - AI 调参闭环 — 读取传感器→分析响应→计算参数→写回设备（PID/滤波器/标定）
 3. **持久化记忆** — ChromaDB 向量存储 + RAG 语义检索
 
 ### 版本规划
@@ -162,8 +164,9 @@ LLM 返回 tool_calls 后，向 `messages` 插入两样东西：
 | v0.0.6 | 记忆持久化 (ChromaDB + RAG) | ⬅ 下一步 |
 | v0.0.7 | Monaco Editor + 文件树 | |
 | v0.0.8 | xterm.js 终端面板 | |
-| v0.0.9 | 烧录工具封装 | |
-| v0.1.0 | 三面板 IDE 整合 + 插件系统 | |
+| v0.0.9 | 烧录工具 (OpenOCD / DSLite) | |
+| v0.0.10 | AI 调参闭环 (write_serial + 阶跃分析 + PID) | |
+| v0.1.0 | 三面板 IDE 整合 + 可扩展插件系统 | |
 
 注意：`requirements.txt` 已含全部后端依赖（openai + python-dotenv + fastapi + uvicorn）。
 串口工具需 `pyserial`（系统已安装）。

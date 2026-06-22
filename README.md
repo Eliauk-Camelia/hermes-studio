@@ -49,9 +49,10 @@ python src/agent.py                 # CLI 终端模式
 | v0.0.7 | Monaco Editor + 文件树 | |
 | v0.0.8 | xterm.js 终端面板 | |
 | v0.0.9 | 嵌入式一键烧录（OpenOCD / DSLite） | |
+| v0.0.10 | AI 调参闭环（PID 自整定 / 滤波器 / 传感器标定） | |
 | v0.1.0 | 三面板 IDE 整合 + 可扩展工具插件系统 | |
 
-> 详见 [ROADMAP.md](./ROADMAP.md) — 三层愿景：IDE 壳 + 嵌入式烧录 + 持久化记忆
+> 详见 [ROADMAP.md](./ROADMAP.md) — 三大支柱：IDE 壳 + 嵌入式工具链 + 持久化记忆
 
 ## 致谢
 
