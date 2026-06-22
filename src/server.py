@@ -311,6 +311,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
 # ─── 静态文件 ──────────────────────────────────
 
+from fastapi.staticfiles import StaticFiles
+
 @app.get("/")
 async def index():
     return FileResponse(STATIC_DIR / "index.html", headers={
@@ -318,9 +320,11 @@ async def index():
         "Pragma": "no-cache",
     })
 
+# 其他静态文件 (CSS, JS, 图标 等)
+app.mount("/", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
 
 if __name__ == "__main__":
-    # 确保端口未被旧进程占用
     import signal, sys as _sys
     _sys.stdout.flush()
     n = cleanup_old_sessions()

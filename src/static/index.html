@@ -5,318 +5,208 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Camelia Studio</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/vscode-theme.css">
 <style>
-  :root {
-    --bg:        #1e1e1e;
-    --bg-light:  #252526;
-    --bg-hover:  #2a2d2e;
-    --bg-active: #37373d;
-    --border:    #3c3c3c;
-    --fg:        #cccccc;
-    --fg-dim:    #858585;
-    --fg-bright: #e0e0e0;
-    --accent:    #007acc;
-    --accent2:   #e8927c;
-    --green:     #4ec9b0;
-    --status-bg: #007acc;
-    --activity-w: 48px;
-    --sidebar-w: 280px;
-    --status-h: 22px;
-    --panel-h: 0px; /* collapsed by default */
-  }
-
   * { margin:0; padding:0; box-sizing:border-box; }
 
   body {
     font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--fg);
-    display: grid;
-    grid-template-columns: var(--activity-w) var(--sidebar-w) 1fr;
-    grid-template-rows: 1fr var(--panel-h) var(--status-h);
-    height: 100dvh; overflow: hidden;
     font-size: 13px;
+    background: var(--vscode-editor-background);
+    color: var(--vscode-editor-foreground);
+    display: grid;
+    grid-template-columns: 48px 280px 1fr;
+    grid-template-rows: 1fr 0px 22px;
+    height: 100dvh; overflow: hidden;
     user-select: none;
   }
 
   /* ═══ 活动栏 ═══ */
   .activity-bar {
     grid-row: 1 / -1; grid-column: 1;
-    background: var(--bg-light);
+    background: var(--vscode-activityBar-background);
     display: flex; flex-direction: column; align-items: center;
     padding-top: 4px;
-    border-right: 1px solid var(--border);
+    border-right: 1px solid var(--vscode-sideBar-border, #3c3c3c);
     z-index: 10;
   }
-  .act-top { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-  .act-bot { display: flex; flex-direction: column; align-items: center; padding-bottom: 4px; }
+  .act-top { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .act-bot { display:flex; flex-direction:column; align-items:center; padding-bottom:4px; }
   .act-btn {
-    width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; border: none; background: transparent; color: var(--fg-dim);
-    font-size: 1.25rem; transition: all 0.1s; position: relative;
+    width: 48px; height: 48px; display:flex; align-items:center; justify-content:center;
+    cursor: pointer; border: none; background: transparent;
+    color: var(--vscode-activityBar-inactiveForeground);
+    font-size: 1.25rem; position: relative;
     border-left: 2px solid transparent;
   }
-  .act-btn:hover { color: var(--fg-bright); }
-  .act-btn.active { color: var(--fg-bright); border-left-color: var(--fg-bright); }
+  .act-btn:hover { color: var(--vscode-activityBar-foreground); }
+  .act-btn.active { color: var(--vscode-activityBar-foreground); border-left-color: var(--vscode-activityBar-foreground); }
 
   /* ═══ 侧边栏 ═══ */
   .sidebar {
     grid-row: 1; grid-column: 2;
-    background: var(--bg-light);
+    background: var(--vscode-sideBar-background);
     display: flex; flex-direction: column;
-    border-right: 1px solid var(--border);
+    border-right: 1px solid var(--vscode-sideBar-border, #3c3c3c);
     overflow: hidden; z-index: 5;
   }
-  .sidebar.collapsed { display: none; }
+  .sidebar.collapsed { display:none; }
 
-  .sidebar-section {
-    border-bottom: 1px solid var(--border);
-    display: flex; flex-direction: column;
-  }
+  .sidebar-section { border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border); }
   .section-header {
     padding: 8px 12px; font-size: 11px; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.05em;
-    color: var(--fg-dim); cursor: pointer;
-    display: flex; align-items: center; justify-content: space-between;
+    color: var(--vscode-sideBarSectionHeader-foreground);
+    cursor: pointer; display: flex; align-items: center; justify-content: space-between;
   }
-  .section-header:hover { color: var(--fg); }
+  .section-header:hover { color: var(--vscode-sideBar-foreground); }
   .section-body { overflow: hidden; }
-  .section-body.collapsed { display: none; }
+  .section-body.collapsed { display:none; }
 
   .sidebar-new {
-    margin: 4px 12px; padding: 5px 10px;
-    background: transparent; border: 1px solid var(--border);
-    border-radius: 4px; color: var(--fg);
+    margin: 4px 12px; padding: 4px 10px;
+    background: transparent; border: 1px solid var(--vscode-input-border);
+    border-radius: 3px; color: var(--vscode-input-foreground);
     font-family: inherit; font-size: 12px; cursor: pointer; text-align: center;
   }
-  .sidebar-new:hover { background: var(--bg-hover); }
+  .sidebar-new:hover { background: var(--vscode-list-hoverBackground); }
 
-  .session-list { overflow-y: auto; max-height: 300px; }
+  .session-list { overflow-y: auto; max-height: 320px; }
   .session-item {
-    padding: 6px 24px; cursor: pointer;
+    padding: 5px 24px; cursor: pointer;
     display: flex; align-items: center; justify-content: space-between;
-    transition: background 0.1s;
   }
-  .session-item:hover { background: var(--bg-hover); }
-  .session-item.active { background: var(--bg-active); }
-  .session-item.active .title { color: var(--fg-bright); }
-  .session-item .info { overflow: hidden; flex: 1; }
+  .session-item:hover { background: var(--vscode-list-hoverBackground); }
+  .session-item.active { background: var(--vscode-list-activeSelectionBackground); }
+  .session-item.active .title { color: var(--vscode-list-activeSelectionForeground); }
+  .session-item .info { overflow: hidden; flex:1; }
   .session-item .title {
-    font-size: 13px; color: var(--fg);
+    font-size: 13px; color: var(--vscode-sideBar-foreground);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;
   }
-  .session-item .meta {
-    font-size: 11px; color: var(--fg-dim); margin-top: 1px;
-  }
-  .session-item .actions {
-    display: flex; gap: 2px; opacity: 0; transition: opacity 0.1s;
-  }
-  .session-item:hover .actions { opacity: 1; }
+  .session-item .meta { font-size: 11px; color: var(--vscode-editorLineNumber-foreground); margin-top:1px; }
+  .session-item .actions { display:flex; gap:2px; opacity:0; }
+  .session-item:hover .actions { opacity:1; }
   .session-item .actions button {
-    background: none; border: none; color: var(--fg-dim);
+    background: none; border: none; color: var(--vscode-editorLineNumber-foreground);
     cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 3px;
   }
-  .session-item .actions button:hover { background: var(--bg-active); color: var(--fg); }
+  .session-item .actions button:hover { background: var(--vscode-list-hoverBackground); color: var(--vscode-editor-foreground); }
   .session-item .actions button.del:hover { color: #f44747; }
 
-  /* ── 记忆搜索 ── */
   .memory-box { padding: 8px 12px; }
   .memory-box input {
     width: 100%; padding: 4px 8px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 3px; color: var(--fg); font-family: inherit; font-size: 12px; outline: none;
+    background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border);
+    border-radius: 3px; color: var(--vscode-input-foreground);
+    font-family: inherit; font-size: 12px; outline: none;
   }
-  .memory-box input:focus { border-color: var(--accent); }
-  .memory-box input::placeholder { color: var(--fg-dim); }
-  .memory-list { overflow-y: auto; flex: 1; }
-  .memory-item {
-    padding: 6px 12px; cursor: pointer; transition: background 0.1s;
-  }
-  .memory-item:hover { background: var(--bg-hover); }
-  .memory-item .mem-title { font-size: 12px; color: var(--fg); margin-bottom: 2px; }
+  .memory-box input:focus { border-color: var(--vscode-focusBorder); }
+  .memory-box input::placeholder { color: var(--vscode-input-placeholderForeground); }
+  .memory-list { overflow-y: auto; flex:1; }
+  .memory-item { padding: 6px 12px; cursor: pointer; }
+  .memory-item:hover { background: var(--vscode-list-hoverBackground); }
+  .memory-item .mem-title { font-size: 12px; color: var(--vscode-sideBar-foreground); margin-bottom:2px; }
   .memory-item .mem-preview {
-    font-size: 11px; color: var(--fg-dim);
-    overflow: hidden; display: -webkit-box;
-    -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    font-size: 11px; color: var(--vscode-editorLineNumber-foreground);
+    overflow: hidden; display: -webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
   }
-  .memory-empty {
-    text-align: center; padding: 20px; font-size: 12px; color: var(--fg-dim);
-  }
+  .memory-empty { text-align:center; padding:20px; font-size:12px; color: var(--vscode-editorLineNumber-foreground); }
 
-  /* ═══ 主内容区 ═══ */
+  /* ═══ 主区域 ═══ */
   .main {
     grid-row: 1; grid-column: 3;
     display: flex; flex-direction: column; min-width: 0;
   }
 
-  /* 编辑器标签栏 (VS Code style, placeholder for future) */
   .tabs-bar {
     display: flex; align-items: center;
-    background: var(--bg-light); border-bottom: 1px solid var(--border);
-    padding: 0; min-height: 35px;
+    background: var(--vscode-tab-background); min-height: 35px;
+    border-bottom: 1px solid var(--vscode-tab-border);
   }
   .tabs-bar .tab {
-    padding: 8px 16px; font-size: 13px; color: var(--fg);
-    border-right: 1px solid var(--border);
-    background: var(--bg); cursor: pointer;
-    display: flex; align-items: center; gap: 8px;
-    white-space: nowrap;
+    padding: 8px 16px; font-size: 13px; color: var(--vscode-tab-activeForeground);
+    border-right: 1px solid var(--vscode-tab-border);
+    background: var(--vscode-tab-activeBackground); cursor: pointer;
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    border-top: 1px solid var(--vscode-tab-activeBorderTop);
   }
-  .tabs-bar .tab.active { background: var(--bg); border-bottom: 1px solid var(--bg); margin-bottom: -1px; }
-  .tabs-bar .tab .tab-icon { font-size: 14px; }
-  .tabs-spacer { flex: 1; }
-  .tab-model {
-    padding: 4px 12px; font-size: 12px; color: var(--fg-dim);
-    display: flex; align-items: center; gap: 6px;
-    border-left: 1px solid var(--border);
-  }
+  .tabs-spacer { flex:1; }
+  .tab-model { padding: 4px 12px; font-size: 12px; color: var(--vscode-tab-inactiveForeground); display:flex; align-items:center; gap:6px; border-left:1px solid var(--vscode-tab-border); }
   .tab-model select {
-    background: var(--bg); color: var(--fg); border: 1px solid var(--border);
-    border-radius: 3px; padding: 2px 6px; font-size: 12px; font-family: inherit; outline: none;
+    background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground);
+    border: 1px solid var(--vscode-dropdown-border); border-radius: 3px;
+    padding: 2px 6px; font-size: 12px; font-family: inherit; outline: none;
   }
 
-  /* 编辑器区 / 聊天区 */
-  .editor-area {
-    flex: 1; display: flex; flex-direction: column; overflow: hidden;
-  }
+  .editor-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .chat { flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
 
-  .chat {
-    flex: 1; overflow-y: auto; padding: 16px 20px;
-    display: flex; flex-direction: column; gap: 12px;
-  }
+  .welcome { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color: var(--vscode-editorLineNumber-foreground); gap:8px; }
+  .welcome-icon { font-size:3rem; opacity:0.3; }
+  .welcome-title { font-size:1.2rem; font-weight:500; color: var(--vscode-editor-foreground); }
+  .welcome-sub { font-size:0.85rem; opacity:0.7; }
 
-  .welcome {
-    flex: 1; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    text-align: center; color: var(--fg-dim); gap: 8px;
-  }
-  .welcome-icon { font-size: 3rem; opacity: 0.3; }
-  .welcome-title { font-size: 1.2rem; font-weight: 500; color: var(--fg); }
-  .welcome-sub { font-size: 0.85rem; opacity: 0.7; }
-
-  .msg {
-    max-width: 80%; padding: 10px 16px;
-    line-height: 1.6; font-size: 14px;
-    animation: msgIn 0.2s ease-out;
-    word-break: break-word;
-  }
+  .msg { max-width:80%; padding:10px 16px; line-height:1.6; font-size:14px; animation: msgIn 0.2s ease-out; word-break:break-word; }
   @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-  .msg.user {
-    align-self: flex-end;
-    background: var(--accent); color: #fff;
-    border-radius: 8px; margin-left: 60px;
-  }
-  .msg.assistant {
-    align-self: flex-start;
-    background: var(--bg-light); color: var(--fg);
-    border-radius: 8px; border: 1px solid var(--border);
-    margin-right: 60px; white-space: pre-wrap;
-  }
-  .msg.assistant code {
-    font-family: 'JetBrains Mono', monospace; font-size: 13px;
-    background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 3px;
-  }
-  .msg.assistant pre {
-    background: var(--bg); padding: 12px; border-radius: 6px;
-    overflow-x: auto; margin: 8px 0; border: 1px solid var(--border);
-  }
-  .msg.assistant pre code { background: none; padding: 0; }
-  .msg.tool {
-    align-self: flex-start; display: flex; align-items: center; gap: 8px;
-    font-size: 12px; color: var(--fg-dim); padding: 4px 0;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .msg.tool .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-  .msg.tool.tool-start .dot { background: var(--green); }
-  .msg.tool.tool-end .dot { background: var(--accent2); }
-  .msg.tool.tool-error .dot { background: #f44747; }
+  .msg.user { align-self:flex-end; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-radius:8px; margin-left:60px; }
+  .msg.assistant { align-self:flex-start; background: var(--vscode-editorWidget-background); color: var(--vscode-editor-foreground); border-radius:8px; border:1px solid var(--vscode-editorWidget-border); margin-right:60px; white-space:pre-wrap; }
+  .msg.assistant code { font-family: 'JetBrains Mono', monospace; font-size:13px; background: var(--vscode-editor-lineHighlightBackground); padding:2px 6px; border-radius:3px; }
+  .msg.assistant pre { background: rgba(0,0,0,0.2); padding:12px; border-radius:6px; overflow-x:auto; margin:8px 0; border: 1px solid var(--vscode-editorWidget-border); }
+  .msg.assistant pre code { background:none; padding:0; }
+  .msg.tool { align-self:flex-start; display:flex; align-items:center; gap:8px; font-size:12px; color: var(--vscode-editorLineNumber-foreground); padding:4px 0; font-family: 'JetBrains Mono', monospace; }
+  .msg.tool .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .msg.tool.tool-start .dot { background: var(--vscode-gitDecoration-addedResourceForeground); }
+  .msg.tool.tool-end .dot { background: var(--vscode-gitDecoration-modifiedResourceForeground); }
+  .msg.tool.tool-error .dot { background: var(--vscode-gitDecoration-deletedResourceForeground); }
 
-  /* 输入栏 */
-  .input-bar {
-    padding: 10px 16px;
-    background: var(--bg-light); border-top: 1px solid var(--border);
-  }
-  .input-wrap {
-    display: flex; gap: 8px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 6px; padding: 4px;
-  }
-  .input-wrap:focus-within { border-color: var(--accent); }
-  .input-wrap textarea {
-    flex: 1; padding: 8px 10px;
-    background: transparent; border: none; color: var(--fg);
-    font-family: inherit; font-size: 13px; resize: none; outline: none;
-    max-height: 100px; line-height: 1.5;
-  }
-  .input-wrap textarea::placeholder { color: var(--fg-dim); }
-  .input-wrap button {
-    padding: 8px 14px;
-    background: var(--accent); color: #fff; border: none; border-radius: 4px;
-    font-family: inherit; font-size: 13px; font-weight: 500;
-    cursor: pointer; flex-shrink: 0; align-self: flex-end;
-  }
-  .input-wrap button:hover { opacity: 0.9; }
+  .input-bar { padding:10px 16px; background: var(--vscode-editorWidget-background); border-top: 1px solid var(--vscode-editorWidget-border); }
+  .input-wrap { display:flex; gap:8px; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 6px; padding:4px; }
+  .input-wrap:focus-within { border-color: var(--vscode-focusBorder); }
+  .input-wrap textarea { flex:1; padding:8px 10px; background:transparent; border:none; color: var(--vscode-input-foreground); font-family:inherit; font-size:13px; resize:none; outline:none; max-height:100px; line-height:1.5; }
+  .input-wrap textarea::placeholder { color: var(--vscode-input-placeholderForeground); }
+  .input-wrap button { padding:8px 14px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border:none; border-radius:4px; font-family:inherit; font-size:13px; font-weight:500; cursor:pointer; flex-shrink:0; align-self:flex-end; }
+  .input-wrap button:hover { background: var(--vscode-button-hoverBackground); }
 
-  #switchNotify {
-    display: none; padding: 6px 16px; text-align: center;
-    background: rgba(0,122,204,0.1); border-bottom: 1px solid rgba(0,122,204,0.2);
-    font-size: 12px; color: var(--accent);
-  }
+  #switchNotify { display:none; padding:6px 16px; text-align:center; background: rgba(0,122,204,0.1); border-bottom: 1px solid rgba(0,122,204,0.2); font-size:12px; color: var(--vscode-focusBorder); }
 
   /* ═══ 底部面板 ═══ */
   .panel {
     grid-row: 2; grid-column: 2 / -1;
-    background: var(--bg); border-top: 1px solid var(--border);
-    z-index: 5;
+    background: var(--vscode-panel-background);
+    border-top: 1px solid var(--vscode-panel-border);
+    z-index: 5; display: flex; flex-direction: column;
   }
-  .panel-tabs {
-    display: flex; align-items: center; background: var(--bg-light);
-    border-bottom: 1px solid var(--border); padding: 0 8px;
-  }
-  .panel-tab {
-    padding: 4px 12px; font-size: 11px; text-transform: uppercase;
-    letter-spacing: 0.05em; color: var(--fg-dim); cursor: pointer;
-    border: none; background: transparent; font-family: inherit;
-    border-bottom: 1px solid transparent;
-  }
-  .panel-tab:hover { color: var(--fg); }
-  .panel-tab.active { color: var(--fg); border-bottom-color: var(--fg); }
-  .panel-content {
-    padding: 8px 12px; font-size: 12px; font-family: 'JetBrains Mono', monospace;
-    color: var(--fg-dim); display: none; height: 100%;
-  }
-  .panel-content.active { display: block; }
+  .panel-tabs { display:flex; align-items:center; background: var(--vscode-editorWidget-background); border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border); padding:0 8px; }
+  .panel-tab { padding:4px 12px; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color: var(--vscode-panelTitle-inactiveForeground); cursor:pointer; border:none; background:transparent; font-family:inherit; border-bottom:1px solid transparent; }
+  .panel-tab:hover { color: var(--vscode-panelTitle-activeForeground); }
+  .panel-tab.active { color: var(--vscode-panelTitle-activeForeground); border-bottom-color: var(--vscode-panelTitle-activeForeground); }
+  .panel-content { padding:8px 12px; font-size:12px; font-family: 'JetBrains Mono', monospace; color: var(--vscode-editorLineNumber-foreground); display:none; height:100%; overflow-y:auto; white-space:pre-wrap; }
+  .panel-content.active { display:block; }
 
   /* ═══ 状态栏 ═══ */
   .status-bar {
     grid-row: 3; grid-column: 1 / -1;
-    background: var(--status-bg); color: #fff;
-    display: flex; align-items: center; padding: 0 10px; gap: 12px;
-    font-size: 12px; z-index: 10;
+    background: var(--vscode-statusBar-background); color: var(--vscode-statusBar-foreground);
+    display: flex; align-items: center; padding: 0 10px; gap: 12px; font-size: 12px; z-index: 10;
   }
-  .status-item { display: flex; align-items: center; gap: 4px; }
-  .status-spacer { flex: 1; }
-  .status-item .dot {
-    width: 6px; height: 6px; border-radius: 50%; background: #6a9955;
-  }
+  .status-item { display:flex; align-items:center; gap:4px; }
+  .status-spacer { flex:1; }
+  .status-dot { width:6px; height:6px; border-radius:50%; background: var(--vscode-gitDecoration-addedResourceForeground); }
 
   /* scrollbar */
-  .chat::-webkit-scrollbar, .session-list::-webkit-scrollbar,
-  .memory-list::-webkit-scrollbar { width: 6px; }
-  .chat::-webkit-scrollbar-track, .session-list::-webkit-scrollbar-track { background: transparent; }
-  .chat::-webkit-scrollbar-thumb, .session-list::-webkit-scrollbar-thumb { background: var(--bg-active); border-radius: 3px; }
+  .chat::-webkit-scrollbar, .session-list::-webkit-scrollbar, .memory-list::-webkit-scrollbar { width:10px; }
+  .chat::-webkit-scrollbar-thumb, .session-list::-webkit-scrollbar-thumb { background: var(--vscode-scrollbarSlider-background); }
+  .chat::-webkit-scrollbar-thumb:hover, .session-list::-webkit-scrollbar-thumb:hover { background: var(--vscode-scrollbarSlider-hoverBackground); }
 
-  @media (max-width: 700px) {
-    body { grid-template-columns: 1fr; grid-template-rows: 1fr var(--status-h); }
-    .activity-bar { display: none; }
-    .sidebar { display: none; }
-    .panel { display: none; }
+  @media (max-width:700px) {
+    body { grid-template-columns: 1fr; grid-template-rows: 1fr 22px; }
+    .activity-bar, .sidebar, .panel { display:none; }
   }
 </style>
 </head>
 <body>
 
-<!-- ═══ 活动栏 (VS Code style) ═══ -->
 <nav class="activity-bar" id="activityBar">
   <div class="act-top">
     <button class="act-btn active" data-panel="explorer" title="Explorer (Ctrl+Shift+E)">📁</button>
@@ -328,59 +218,39 @@
   </div>
 </nav>
 
-<!-- ═══ 侧边栏 ═══ -->
 <aside class="sidebar" id="sidebar">
-  <!-- EXPLORER section -->
   <div class="sidebar-section">
-    <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-header" onclick="this.nextElementSibling.classList.toggle('collapsed')">
       <span>▾ EXPLORER</span>
       <span style="cursor:pointer;font-size:14px" onclick="event.stopPropagation();newSession()" title="New Chat">+</span>
     </div>
-    <div class="section-body" id="explorerBody">
+    <div class="section-body">
       <div class="sidebar-section" style="border:none">
-        <div class="section-header" onclick="toggleSection(this)">▸ CAMELIA STUDIO</div>
-        <div class="section-body" id="sessionsSection">
+        <div class="section-header" onclick="this.nextElementSibling.classList.toggle('collapsed')">▸ CAMELIA STUDIO</div>
+        <div class="section-body" id="sessionSection">
           <div class="session-list" id="sessionList"></div>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- MEMORY section (hidden by default) -->
   <div class="sidebar-section" id="memorySection" style="display:none">
     <div class="section-header">▾ MEMORY</div>
     <div class="section-body">
-      <div class="memory-box">
-        <input type="text" id="memorySearchInput"
-         placeholder="Search memories..."
-         oninput="searchMemory()">
-      </div>
-      <div class="memory-list" id="memoryList">
-        <div class="memory-empty">Type to search memories</div>
-      </div>
+      <div class="memory-box"><input type="text" id="memorySearchInput" placeholder="Search memories..." oninput="searchMemory()"></div>
+      <div class="memory-list" id="memoryList"><div class="memory-empty">Type to search</div></div>
     </div>
   </div>
 </aside>
 
-<!-- ═══ 主区域 ═══ -->
 <div class="main">
-  <!-- 编辑器标签栏 -->
   <div class="tabs-bar">
-    <div class="tab active">
-      <span class="tab-icon">💬</span>
-      <span>Camelia Chat</span>
-    </div>
+    <div class="tab active"><span>💬</span><span>Camelia Chat</span></div>
     <div class="tabs-spacer"></div>
     <div class="tab-model">
-      <select id="modelSelect" onchange="switchModel()">
-        <option>loading...</option>
-      </select>
+      <select id="modelSelect" onchange="switchModel()"><option>loading...</option></select>
     </div>
   </div>
-
   <div id="switchNotify"></div>
-
-  <!-- 编辑器/聊天区 -->
   <div class="editor-area">
     <div class="chat" id="chat">
       <div class="welcome" id="welcome">
@@ -389,34 +259,26 @@
         <div class="welcome-sub">AI coding assistant — ready</div>
       </div>
     </div>
-
     <div class="input-bar">
       <div class="input-wrap">
-        <textarea id="input" rows="1" placeholder="Ask anything... (Enter to send, Shift+Enter for newline)"
-         onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
+        <textarea id="input" rows="1" placeholder="Ask anything... (Enter send, Shift+Enter newline)" onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
         <button onclick="send()">Send</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══ 底部面板 ═══ -->
 <div class="panel">
   <div class="panel-tabs">
     <button class="panel-tab active" onclick="activatePanelTab('output')">OUTPUT</button>
     <button class="panel-tab" onclick="activatePanelTab('memory')">MEMORY LOG</button>
   </div>
-  <div class="panel-content active" data-panel="output" id="panelOutput">
-    Camelia Studio — Ready.
-  </div>
-  <div class="panel-content" data-panel="memory" id="panelMemory">
-    Memory system initializing...
-  </div>
+  <div class="panel-content active" data-panel="output" id="panelOutput">Camelia Studio — Ready.</div>
+  <div class="panel-content" data-panel="memory" id="panelMemory"></div>
 </div>
 
-<!-- ═══ 状态栏 ═══ -->
 <footer class="status-bar">
-  <span class="status-item"><span class="dot"></span> connected</span>
+  <span class="status-item"><span class="status-dot"></span> connected</span>
   <span class="status-item" id="statusModel">deepseek-chat</span>
   <span class="status-spacer"></span>
   <span class="status-item" id="statusSession"></span>
@@ -424,416 +286,176 @@
 </footer>
 
 <script>
-// ══════════════════════════════════════════════
-//  状态
-// ══════════════════════════════════════════════
-let sessionId = null;
-let streamDiv = null;
-let isGenerating = false;
-let pendingModelSwitch = null;
-const chat = document.getElementById("chat");
-const input = document.getElementById("input");
+let sessionId=null,streamDiv=null,isGenerating=false,pendingModelSwitch=null;
+const chat=document.getElementById("chat"),input=document.getElementById("input");
 
-// ══════════════════════════════════════════════
-//  活动栏切换
-// ══════════════════════════════════════════════
-document.getElementById("activityBar").addEventListener("click", e => {
-  const btn = e.target.closest(".act-btn");
-  if (!btn || !btn.dataset.panel) return;
-
-  document.querySelectorAll(".act-btn").forEach(b => b.classList.remove("active"));
+// ── 活动栏切换 ──
+document.getElementById("activityBar").addEventListener("click",e=>{
+  const btn=e.target.closest(".act-btn"); if(!btn||!btn.dataset.panel)return;
+  document.querySelectorAll(".act-btn").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
-
-  const panel = btn.dataset.panel;
-  const sidebar = document.getElementById("sidebar");
-  const memorySec = document.getElementById("memorySection");
-  const explorerBody = document.getElementById("explorerBody");
-
-  if (panel === "memory") {
-    memorySec.style.display = "";
-    explorerBody.style.display = "none";
-    sidebar.classList.remove("collapsed");
-    searchMemory();
-  } else if (panel === "explorer") {
-    memorySec.style.display = "none";
-    explorerBody.style.display = "";
-    sidebar.classList.remove("collapsed");
-    loadSessionList();
-  } else if (panel === "chat") {
-    sidebar.classList.add("collapsed");
-  }
+  const p=btn.dataset.panel,s=document.getElementById("sidebar"),ms=document.getElementById("memorySection");
+  if(p==="memory"){ms.style.display="";s.classList.remove("collapsed");searchMemory();}
+  else if(p==="explorer"){ms.style.display="none";s.classList.remove("collapsed");loadSessionList();}
+  else if(p==="chat")s.classList.add("collapsed");
 });
 
-// 侧边栏 section 折叠
-function toggleSection(header) {
-  const body = header.nextElementSibling;
-  if (!body || !body.classList.contains("section-body")) return;
-  body.classList.toggle("collapsed");
-  const arrow = header.querySelector("span");
-  if (arrow) {
-    arrow.textContent = body.classList.contains("collapsed")
-      ? arrow.textContent.replace("▾", "▸")
-      : arrow.textContent.replace("▸", "▾");
-  }
+function activatePanelTab(n){
+  document.querySelectorAll(".panel-tab").forEach(t=>t.classList.toggle("active",t.textContent.trim().toLowerCase().includes(n)));
+  document.querySelectorAll(".panel-content").forEach(p=>p.classList.toggle("active",p.dataset.panel===n));
 }
 
-// 底部面板 tab 切换
-function activatePanelTab(name) {
-  document.querySelectorAll(".panel-tab").forEach(t => t.classList.toggle("active", t.textContent.trim().toLowerCase().includes(name)));
-  document.querySelectorAll(".panel-content").forEach(p => p.classList.toggle("active", p.dataset.panel === name));
-}
-
-// 快捷键
-document.addEventListener("keydown", e => {
-  if (e.ctrlKey && e.shiftKey && e.key === "E") { e.preventDefault(); activateActivity("explorer"); }
-  if (e.ctrlKey && e.shiftKey && e.key === "M") { e.preventDefault(); activateActivity("memory"); }
-  if (e.ctrlKey && e.key === "b") { e.preventDefault(); document.getElementById("sidebar").classList.toggle("collapsed"); }
-  if (e.ctrlKey && e.key === "j") { e.preventDefault(); togglePanel(); }
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey&&e.shiftKey&&e.key==="E"){e.preventDefault();document.querySelector('.act-btn[data-panel="explorer"]')?.click();}
+  if(e.ctrlKey&&e.shiftKey&&e.key==="M"){e.preventDefault();document.querySelector('.act-btn[data-panel="memory"]')?.click();}
+  if(e.ctrlKey&&e.key==="b"){e.preventDefault();document.getElementById("sidebar").classList.toggle("collapsed");}
+  if(e.ctrlKey&&e.key==="j"){e.preventDefault();const r=document.documentElement.style;r.setProperty("--panel-h",r.getPropertyValue("--panel-h")==="0px"?"200px":"0px");}
 });
 
-function activateActivity(name) {
-  const btn = document.querySelector(`.act-btn[data-panel="${name}"]`);
-  if (btn) btn.click();
-}
-
-function togglePanel() {
-  const root = document.documentElement.style;
-  const current = getComputedStyle(document.documentElement).getPropertyValue('--panel-h').trim();
-  root.setProperty('--panel-h', current === '0px' ? '200px' : '0px');
-}
-
-// ══════════════════════════════════════════════
-//  WebSocket
-// ══════════════════════════════════════════════
-let ws = null;
-function createWebSocket() {
-  if (ws) { try { ws.close(); } catch {} }
-  ws = new WebSocket("ws://" + location.host + "/ws");
-  ws.onerror = e => console.error("WS error:", e);
-  ws.onmessage = handleWsMessage;
-  ws.onopen = () => {
-    if (sessionId) ws.send(JSON.stringify({ type: "reconnect", session_id: sessionId }));
-  };
+// ── WebSocket ──
+let ws=null;
+function createWebSocket(){
+  if(ws)try{ws.close()}catch(e){}
+  ws=new WebSocket("ws://"+location.host+"/ws");
+  ws.onmessage=handleWsMessage;
+  ws.onopen=()=>{if(sessionId)ws.send(JSON.stringify({type:"reconnect",session_id:sessionId}))};
 }
 createWebSocket();
 
-// ══════════════════════════════════════════════
-//  会话列表
-// ══════════════════════════════════════════════
-async function loadSessionList() {
-  try {
-    const res = await fetch("/api/sessions");
-    const data = await res.json();
-    const list = document.getElementById("sessionList");
-    list.innerHTML = "";
-    data.sessions.forEach(s => {
-      const div = document.createElement("div");
-      div.className = "session-item" + (s.id === sessionId ? " active" : "");
-      const info = document.createElement("div"); info.className = "info";
-      const title = document.createElement("div"); title.className = "title";
-      title.textContent = s.title || "(empty)";
-      const meta = document.createElement("div"); meta.className = "meta";
-      meta.textContent = s.count + " messages";
-      info.appendChild(title); info.appendChild(meta);
-      // actions
-      const actions = document.createElement("div"); actions.className = "actions";
-      const starBtn = document.createElement("button");
-      starBtn.textContent = s.starred ? "⭐" : "☆";
-      starBtn.title = s.starred ? "Unstar" : "Star";
-      starBtn.onclick = (e) => { e.stopPropagation(); toggleStar(s.id, starBtn); };
-      const delBtn = document.createElement("button"); delBtn.className = "del";
-      delBtn.textContent = "✕"; delBtn.title = "Delete";
-      delBtn.onclick = (e) => { e.stopPropagation(); delSession(s.id); };
-      actions.appendChild(starBtn); actions.appendChild(delBtn);
-      div.appendChild(info); div.appendChild(actions);
-      div.onclick = () => switchSession(s.id);
+// ── Sessions ──
+async function loadSessionList(){
+  try{
+    const d=await(await fetch("/api/sessions")).json();
+    const list=document.getElementById("sessionList"); list.innerHTML="";
+    d.sessions.forEach(s=>{
+      const div=document.createElement("div");
+      div.className="session-item"+(s.id===sessionId?" active":"");
+      const info=document.createElement("div");info.className="info";
+      const t=document.createElement("div");t.className="title";t.textContent=s.title||"(empty)";
+      const m=document.createElement("div");m.className="meta";m.textContent=s.count+" msgs";
+      info.appendChild(t);info.appendChild(m);
+      const acts=document.createElement("div");acts.className="actions";
+      const star=document.createElement("button");star.textContent=s.starred?"⭐":"☆";
+      star.onclick=e=>{e.stopPropagation();toggleStar(s.id,star)};
+      const del=document.createElement("button");del.className="del";del.textContent="✕";
+      del.onclick=e=>{e.stopPropagation();delSession(s.id)};
+      acts.appendChild(star);acts.appendChild(del);
+      div.appendChild(info);div.appendChild(acts);
+      div.onclick=()=>switchSession(s.id);
       list.appendChild(div);
     });
-  } catch(err) { console.error("loadSessionList:", err); }
+  }catch(e){console.error(e)}
 }
 
-function escapeHtml(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function escapeHtml(s){const d=document.createElement("div");d.textContent=s;return d.innerHTML}
+function renderMarkdown(t){let h=escapeHtml(t);h=h.replace(/```(\w*)\n?([\s\S]*?)```/g,'<pre><code>$2</code></pre>');h=h.replace(/`([^`]+)`/g,'<code>$1</code>');return h}
 
-function renderMarkdown(text) {
-  let html = escapeHtml(text);
-  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  return html;
+async function switchSession(id){
+  try{
+    sessionId=id;await loadSessionList();chat.innerHTML="";
+    const w=document.getElementById("welcome");if(w)w.style.display="none";
+    const d=await(await fetch("/api/sessions/"+id)).json();
+    d.messages.forEach(m=>{if(m.role==="user")addMsg("user",m.content);else if(m.role==="assistant")addMsg("assistant",m.content)});
+    document.getElementById("statusSession").textContent=id||"";chat.scrollTop=chat.scrollHeight;
+  }catch(e){console.error(e)}
 }
 
-async function switchSession(id) {
-  try {
-    sessionId = id;
-    await loadSessionList();
-    chat.innerHTML = "";
-    const w = document.getElementById("welcome");
-    if (w) w.style.display = "none";
-    const res = await fetch("/api/sessions/" + id);
-    if (!res.ok) { console.error("load failed:", res.status); return; }
-    const data = await res.json();
-    data.messages.forEach(m => {
-      if (m.role === "user") addMsg("user", m.content);
-      else if (m.role === "assistant") addMsg("assistant", m.content);
-    });
-    updateInfoBar();
-    chat.scrollTop = chat.scrollHeight;
-  } catch(err) { console.error("switchSession:", err); }
-}
-
-async function toggleStar(id, btn) {
-  const res = await fetch("/api/sessions/" + id + "/star", { method: "POST" });
-  const data = await res.json();
-  if (data.ok) { btn.textContent = data.starred ? "⭐" : "☆"; loadSessionList(); }
-}
-
-async function delSession(id) {
-  await fetch("/api/sessions/" + id, { method: "DELETE" });
-  if (sessionId === id) {
-    sessionId = null; chat.innerHTML = "";
-    document.getElementById("welcome").style.display = "";
-    try {
-      const res = await fetch("/api/sessions");
-      const data = await res.json();
-      if (data.sessions && data.sessions.length > 0) { await switchSession(data.sessions[0].id); return; }
-    } catch {}
-  }
+async function toggleStar(id,btn){const d=await(await fetch("/api/sessions/"+id+"/star",{method:"POST"})).json();if(d.ok){btn.textContent=d.starred?"⭐":"☆";loadSessionList()}}
+async function delSession(id){
+  await fetch("/api/sessions/"+id,{method:"DELETE"});
+  if(sessionId===id){sessionId=null;chat.innerHTML="";document.getElementById("welcome").style.display="";try{const d=await(await fetch("/api/sessions")).json();if(d.sessions&&d.sessions.length>0){await switchSession(d.sessions[0].id);return}}catch(e){}}
   loadSessionList();
 }
+async function newSession(){sessionId=null;isGenerating=false;pendingModelSwitch=null;hideSwitchNotification();chat.innerHTML="";document.getElementById("welcome").style.display="";document.getElementById("statusSession").textContent="";loadSessionList()}
 
-async function newSession() {
-  sessionId = null; isGenerating = false; pendingModelSwitch = null;
-  hideSwitchNotification(); chat.innerHTML = "";
-  document.getElementById("welcome").style.display = "";
-  loadSessionList(); updateInfoBar();
+// ── Memory ──
+let memTimer=null;
+async function searchMemory(){clearTimeout(memTimer);memTimer=setTimeout(async()=>{
+  const q=document.getElementById("memorySearchInput").value.trim(),list=document.getElementById("memoryList");
+  if(!q){list.innerHTML='<div class="memory-empty">Type to search</div>';return}
+  list.innerHTML='<div class="memory-empty">Searching...</div>';
+  try{
+    const d=await(await fetch("/api/memory/search?q="+encodeURIComponent(q))).json();
+    if(!d.memories||!d.memories.length){list.innerHTML='<div class="memory-empty">No results</div>';return}
+    list.innerHTML="";d.memories.forEach(m=>{const div=document.createElement("div");div.className="memory-item";const t=document.createElement("div");t.className="mem-title";t.textContent=(m.metadata&&m.metadata.title)||"Memory";const p=document.createElement("div");p.className="mem-preview";p.textContent=m.content||"";div.appendChild(t);div.appendChild(p);list.appendChild(div)})
+  }catch(e){list.innerHTML='<div class="memory-empty">Search failed</div>'}
+},400)}
+
+async function loadMemoryStats(){try{const d=await(await fetch("/api/memory/stats")).json();document.getElementById("statusMem").textContent="🧠 "+(d.count||0)}catch(e){}}
+
+// ── Messages ──
+function addMsg(role,text){
+  const w=document.getElementById("welcome");if(w)w.style.display="none";
+  const div=document.createElement("div");
+  if(role==="user"){div.className="msg user";div.textContent=text}
+  else if(role==="assistant"){div.className="msg assistant";div.innerHTML=renderMarkdown(text)}
+  else if(role.startsWith("tool-")){div.className="msg tool "+role;const dot=document.createElement("span");dot.className="dot";const span=document.createElement("span");span.textContent=text;div.appendChild(dot);div.appendChild(span)}
+  chat.appendChild(div);chat.scrollTo({top:chat.scrollHeight,behavior:"smooth"})
 }
 
-// ══════════════════════════════════════════════
-//  记忆搜索
-// ══════════════════════════════════════════════
-let memTimer = null;
-async function searchMemory() {
-  clearTimeout(memTimer);
-  memTimer = setTimeout(async () => {
-    const q = document.getElementById("memorySearchInput").value.trim();
-    const list = document.getElementById("memoryList");
-    if (!q) { list.innerHTML = '<div class="memory-empty">Type to search</div>'; return; }
-    list.innerHTML = '<div class="memory-empty">Searching...</div>';
-    try {
-      const res = await fetch(`/api/memory/search?q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      if (!data.memories || data.memories.length === 0) {
-        list.innerHTML = '<div class="memory-empty">No results</div>'; return;
-      }
-      list.innerHTML = "";
-      data.memories.forEach(mem => {
-        const div = document.createElement("div"); div.className = "memory-item";
-        const title = document.createElement("div"); title.className = "mem-title";
-        title.textContent = (mem.metadata && mem.metadata.title) || "Memory";
-        const preview = document.createElement("div"); preview.className = "mem-preview";
-        preview.textContent = mem.content || "";
-        div.appendChild(title); div.appendChild(preview);
-        list.appendChild(div);
-      });
-    } catch { list.innerHTML = '<div class="memory-empty">Search failed</div>'; }
-  }, 400);
+// ── WS handler ──
+function handleWsMessage(e){
+  try{
+    const ev=JSON.parse(e.data);
+    if(ev.type==="reconnected"){if(ev.session_id)sessionId=ev.session_id;loadSessionList();processQueue();return}
+    if(ev.type==="session_created"){sessionId=ev.session_id;document.getElementById("statusSession").textContent=sessionId;loadSessionList();isGenerating=false}
+    else if(ev.type==="session_saved"){loadSessionList();loadMemoryStats()}
+    else if(ev.type==="session_renamed"){loadSessionList()}
+    else if(ev.type==="memory_found"){document.getElementById("panelMemory").textContent=ev.count+" relevant memories found"}
+    else if(ev.type==="tool_start"){isGenerating=true;streamDiv=null;addMsg("tool-tool-start","🔧 "+ev.name+"...");document.getElementById("panelOutput").textContent="🔧 "+ev.name}
+    else if(ev.type==="tool_end"){addMsg("tool-tool-end",ev.name+" → "+(ev.result||"").slice(0,100));document.getElementById("panelOutput").textContent="✅ "+ev.name}
+    else if(ev.type==="stream"){isGenerating=true;document.getElementById("welcome").style.display="none";if(!streamDiv){streamDiv=document.createElement("div");streamDiv.className="msg assistant";chat.appendChild(streamDiv)}streamDiv.textContent=(streamDiv.textContent||"")+ev.content;chat.scrollTo({top:chat.scrollHeight,behavior:"smooth"})}
+    else if(ev.type==="text"){if(streamDiv){streamDiv.innerHTML=renderMarkdown(ev.content);streamDiv=null}else addMsg("assistant",ev.content);finishGeneration()}
+    else if(ev.type==="error"){streamDiv=null;addMsg("tool-tool-error",ev.content);finishGeneration()}
+  }catch(e){console.error(e)}
 }
 
-async function loadMemoryStats() {
-  try {
-    const res = await fetch("/api/memory/stats");
-    const data = await res.json();
-    document.getElementById("statusMem").textContent = "🧠 " + (data.count || 0);
-  } catch {}
+function finishGeneration(){isGenerating=false;if(pendingModelSwitch){const{providerId,model}=pendingModelSwitch;pendingModelSwitch=null;hideSwitchNotification();applyModelSwitch(providerId,model);return}processQueue()}
+
+// ── Send + Queue ──
+let messageQueue=[];
+function send(){const t=input.value.trim();if(!t)return;input.value="";autoResize(input);if(isGenerating||pendingModelSwitch){messageQueue.push(t);showSwitchNotification("Queued ("+messageQueue.length+")");return}deliverMessage(t)}
+function deliverMessage(t){try{addMsg("user",t);isGenerating=true;ws.send(JSON.stringify({content:t,session_id:sessionId}))}catch(e){console.error(e)}}
+function processQueue(){if(messageQueue.length>0){hideSwitchNotification();deliverMessage(messageQueue.shift())}}
+function onKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}
+function autoResize(e){e.style.height="auto";e.style.height=Math.min(e.scrollHeight,100)+"px"}
+
+// ── Model switch ──
+let modelOptions=[];
+async function initModelSwitcher(){
+  const s=document.getElementById("modelSelect");
+  try{
+    let cur="deepseek-chat";try{cur=(await(await fetch("/api/config")).json()).model||cur}catch(e){}
+    if(window.settings&&window.settings.getProviders){const d=await window.settings.getProviders();modelOptions=[];(d.providers||[]).forEach(p=>{if(!p.api_key||p.api_key==="****"||p.api_key==="***")return;(p.models||[]).forEach(m=>modelOptions.push({pid:p.id,pname:p.name,model:m}))})}
+    s.innerHTML="";if(!modelOptions.length)s.innerHTML='<option>No provider configured</option>';
+    else modelOptions.forEach(o=>{const opt=document.createElement("option");opt.value=o.pid+":::"+o.model;opt.textContent=o.pname+" / "+o.model;if(o.model===cur)opt.selected=true;s.appendChild(opt)})
+  }catch(e){s.innerHTML='<option>Error</option>'}
 }
 
-function updateInfoBar() {
-  const el = document.getElementById("statusSession");
-  el.textContent = sessionId || "";
+async function switchModel(){
+  const s=document.getElementById("modelSelect"),v=s.value;if(!v||!v.includes(":::"))return;
+  const[pid,model]=v.split(":::");
+  if(!window.settings||!window.settings.setActive){alert("Model switch only in desktop app");return}
+  if(isGenerating){s.disabled=true;try{const d=await window.settings.saveActive(pid,model);if(d.ok){pendingModelSwitch={providerId:pid,model};showSwitchNotification("Switching after reply...")}else{showSwitchNotification("Failed: "+d.error);s.disabled=false}}catch(e){showSwitchNotification("Failed: "+e.message);s.disabled=false};return}
+  s.disabled=true;applyModelSwitch(pid,model);
 }
+async function applyModelSwitch(pid,model){const s=document.getElementById("modelSelect");try{const d=await window.settings.setActive(pid,model);if(!d.ok){alert("Switch failed: "+d.error);s.disabled=false;return}createWebSocket();await new Promise(r=>setTimeout(r,800));await initModelSwitcher();s.disabled=false}catch(e){alert("Switch failed: "+e.message);s.disabled=false}}
+function showSwitchNotification(msg){const el=document.getElementById("switchNotify");el.textContent=msg;el.style.display="block";setTimeout(()=>el.style.display="none",4000)}
+function hideSwitchNotification(){document.getElementById("switchNotify").style.display="none"}
 
-// ══════════════════════════════════════════════
-//  消息渲染
-// ══════════════════════════════════════════════
-function addMsg(role, text) {
-  const w = document.getElementById("welcome");
-  if (w) w.style.display = "none";
-  const div = document.createElement("div");
-  if (role === "user") { div.className = "msg user"; div.textContent = text; }
-  else if (role === "assistant") { div.className = "msg assistant"; div.innerHTML = renderMarkdown(text); }
-  else if (role.startsWith("tool-")) {
-    div.className = "msg tool " + role;
-    const dot = document.createElement("span"); dot.className = "dot";
-    const span = document.createElement("span"); span.textContent = text;
-    div.appendChild(dot); div.appendChild(span);
-  }
-  chat.appendChild(div);
-  chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
-}
-
-// ══════════════════════════════════════════════
-//  WebSocket 消息处理
-// ══════════════════════════════════════════════
-function handleWsMessage(e) {
-  try {
-    const event = JSON.parse(e.data);
-    if (event.type === "reconnected") {
-      if (event.session_id) sessionId = event.session_id;
-      loadSessionList(); updateInfoBar(); processQueue(); return;
-    }
-    if (event.type === "session_created") {
-      sessionId = event.session_id; updateInfoBar(); loadSessionList(); isGenerating = false;
-    } else if (event.type === "session_saved") {
-      loadSessionList(); loadMemoryStats();
-    } else if (event.type === "session_renamed") {
-      loadSessionList();
-    } else if (event.type === "memory_found") {
-      logPanel(`Memory: ${event.count} relevant memories found`);
-    } else if (event.type === "tool_start") {
-      isGenerating = true; streamDiv = null;
-      addMsg("tool-tool-start", "🔧 " + event.name + "...");
-      logPanel(`Tool: ${event.name}`);
-    } else if (event.type === "tool_end") {
-      addMsg("tool-tool-end", event.name + " → " + (event.result || "").slice(0, 100));
-      logPanel(`Result: ${(event.result || '').slice(0, 200)}`);
-    } else if (event.type === "stream") {
-      isGenerating = true;
-      document.getElementById("welcome").style.display = "none";
-      if (!streamDiv) { streamDiv = document.createElement("div"); streamDiv.className = "msg assistant"; chat.appendChild(streamDiv); }
-      streamDiv.textContent = (streamDiv.textContent || "") + event.content;
-      chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
-    } else if (event.type === "text") {
-      if (streamDiv) { streamDiv.innerHTML = renderMarkdown(event.content); streamDiv = null; }
-      else { addMsg("assistant", event.content); }
-      finishGeneration();
-    } else if (event.type === "error") {
-      streamDiv = null; addMsg("tool-tool-error", event.content); finishGeneration();
-    }
-  } catch(err) { console.error("handleWsMessage:", err); }
-}
-
-function logPanel(msg) {
-  const el = document.getElementById("panelOutput");
-  const time = new Date().toLocaleTimeString();
-  el.textContent = `[${time}] ${msg}` + (el.textContent.includes("Ready") ? "" : "\n" + el.textContent);
-}
-
-function finishGeneration() {
-  isGenerating = false;
-  if (pendingModelSwitch) {
-    const { providerId, model } = pendingModelSwitch;
-    pendingModelSwitch = null; hideSwitchNotification();
-    applyModelSwitch(providerId, model); return;
-  }
-  processQueue();
-}
-
-// ══════════════════════════════════════════════
-//  发送 + 队列
-// ══════════════════════════════════════════════
-let messageQueue = [];
-function send() {
-  const text = input.value.trim(); if (!text) return;
-  input.value = ""; autoResize(input);
-  if (isGenerating || pendingModelSwitch) { messageQueue.push(text); showSwitchNotification("Queued (" + messageQueue.length + ")"); return; }
-  deliverMessage(text);
-}
-function deliverMessage(text) {
-  try { addMsg("user", text); isGenerating = true; ws.send(JSON.stringify({ content: text, session_id: sessionId })); }
-  catch(e) { console.error("send:", e); }
-}
-function processQueue() { if (messageQueue.length > 0) { hideSwitchNotification(); deliverMessage(messageQueue.shift()); } }
-function onKey(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }
-function autoResize(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 100) + "px"; }
-
-// ══════════════════════════════════════════════
-//  模型切换
-// ══════════════════════════════════════════════
-let modelOptions = [];
-async function initModelSwitcher() {
-  const select = document.getElementById("modelSelect");
-  try {
-    let cur = "deepseek-chat";
-    try { const cr = await fetch("/api/config"); cur = (await cr.json()).model || cur; } catch {}
-    if (window.settings && window.settings.getProviders) {
-      const data = await window.settings.getProviders();
-      modelOptions = [];
-      (data.providers || []).forEach(p => {
-        if (!p.api_key || p.api_key === '****' || p.api_key === '***') return;
-        (p.models || []).forEach(m => modelOptions.push({ pid: p.id, pname: p.name, model: m }));
-      });
-    }
-    select.innerHTML = "";
-    if (modelOptions.length === 0) select.innerHTML = '<option>No provider configured</option>';
-    else modelOptions.forEach(opt => {
-      const o = document.createElement("option");
-      o.value = opt.pid + ":::" + opt.model;
-      o.textContent = opt.pname + " / " + opt.model;
-      if (opt.model === cur) o.selected = true;
-      select.appendChild(o);
-    });
-  } catch { select.innerHTML = '<option>Error</option>'; }
-}
-
-async function switchModel() {
-  const select = document.getElementById("modelSelect");
-  const val = select.value; if (!val || !val.includes(":::")) return;
-  const [pid, model] = val.split(":::");
-  if (!window.settings || !window.settings.setActive) { alert("Model switch only in desktop app"); return; }
-  if (isGenerating) {
-    select.disabled = true;
-    try {
-      const d = await window.settings.saveActive(pid, model);
-      if (d.ok) { pendingModelSwitch = { providerId: pid, model }; showSwitchNotification("Switching after reply..."); }
-      else { showSwitchNotification("Failed: " + d.error); select.disabled = false; }
-    } catch(e) { showSwitchNotification("Failed: " + e.message); select.disabled = false; }
-    return;
-  }
-  select.disabled = true; applyModelSwitch(pid, model);
-}
-
-async function applyModelSwitch(pid, model) {
-  const select = document.getElementById("modelSelect");
-  try {
-    const d = await window.settings.setActive(pid, model);
-    if (!d.ok) { alert("Switch failed: " + d.error); select.disabled = false; return; }
-    createWebSocket(); await new Promise(r => setTimeout(r, 800));
-    await initModelSwitcher(); select.disabled = false;
-  } catch(e) { alert("Switch failed: " + e.message); select.disabled = false; }
-}
-
-function showSwitchNotification(msg) { const el = document.getElementById("switchNotify"); el.textContent = msg; el.style.display = "block"; setTimeout(() => el.style.display = "none", 4000); }
-function hideSwitchNotification() { document.getElementById("switchNotify").style.display = "none"; }
-
-// ══════════════════════════════════════════════
-//  状态栏
-// ══════════════════════════════════════════════
-async function refreshStatus() {
-  try {
-    const r = await fetch("/api/health");
-    document.querySelector(".status-bar .dot").style.background = r.ok ? "#6a9955" : "#f44747";
-  } catch { document.querySelector(".status-bar .dot").style.background = "#f44747"; }
-  try {
-    const cr = await fetch("/api/config");
-    const c = await cr.json();
-    document.getElementById("statusModel").textContent = c.model || "--";
-  } catch {}
+// ── Status ──
+async function refreshStatus(){
+  try{const r=await fetch("/api/health");document.querySelector(".status-dot").style.background=r.ok?"var(--vscode-gitDecoration-addedResourceForeground)":"#f44747"}catch(e){document.querySelector(".status-dot").style.background="#f44747"}
+  try{document.getElementById("statusModel").textContent=(await(await fetch("/api/config")).json()).model||"--"}catch(e){}
   loadMemoryStats();
 }
 
-// ══════════════════════════════════════════════
-//  启动
-// ══════════════════════════════════════════════
-(async function startup() {
-  await initModelSwitcher();
-  await loadSessionList();
-  await refreshStatus();
-  try {
-    const res = await fetch("/api/sessions");
-    const data = await res.json();
-    if (data.sessions && data.sessions.length > 0) await switchSession(data.sessions[0].id);
-  } catch {}
+// ── Startup ──
+(async function(){
+  await initModelSwitcher();await loadSessionList();await refreshStatus();
+  try{const d=await(await fetch("/api/sessions")).json();if(d.sessions&&d.sessions.length>0)await switchSession(d.sessions[0].id)}catch(e){}
 })();
-setInterval(refreshStatus, 30000);
+setInterval(refreshStatus,30000);
 </script>
 </body>
 </html>
