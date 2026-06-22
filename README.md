@@ -7,25 +7,28 @@
 ## 架构
 
 ```
-src/agent.py  ──  单文件 Agent，自包含
-    │
-    ├── call_llm()      给 LLM 打电话（OpenAI 兼容 API）
-    ├── agent_loop()    Agent 大脑循环（Tool Calling）
-    └── execute_tool()  工具执行器
+electron/       桌面壳 — 原生窗口 + 加密存储 + 自动更新
+src/agent.py    Agent 引擎 — 单文件自包含，8 个工具 + 流式输出
+src/server.py   Web 服务 — FastAPI + WebSocket 实时推送
+src/static/     聊天界面 — 山茶花深色主题，响应式布局
 ```
+
+### 8 个内置工具
+
+`get_time` · `calc` · `read_file` · `write_file` · `list_dir` · `run_command` · `list_serial_ports` · `read_serial`
 
 ## 快速开始
 
 ```bash
-# 1. 安装依赖
+# ── Electron 桌面应用（推荐）──
+cd electron && npm install
+./run-electron.sh                   # 开发模式，首次启动引导配置 API Key
+
+# ── 纯 Python 模式 ──
 pip install -r requirements.txt
-
-# 2. 配置 .env
-cp .env.example .env
-# 编辑 .env，填入 DeepSeek API Key
-
-# 3. 运行
-python src/agent.py
+cp .env.example .env                # 编辑 .env，填入 API Key
+python src/server.py                # Web 界面 http://localhost:8648
+python src/agent.py                 # CLI 终端模式
 ```
 
 ## 环境变量
@@ -39,11 +42,11 @@ python src/agent.py
 ## 路线图
 
 - [x] v0.0.1 Agent 核心循环（Tool Calling 引擎）
-- [ ] v0.0.2 Web 聊天界面（FastAPI + WebSocket）
-- [ ] v0.0.3 文件系统工具（读写文件、执行命令）
-- [ ] v0.0.4 硬件控制（MSPM0 / STM32 串口通信）
-- [ ] v0.0.5 多端互通（CLI + Web + Telegram）
-- [ ] v0.0.6 对话记忆持久化
+- [x] v0.0.2 Web 聊天界面（FastAPI + WebSocket + 流式输出）
+- [x] v0.0.3 文件系统工具（读写文件、执行命令、路径沙箱）
+- [x] v0.0.4 硬件控制（MSPM0 / STM32 串口通信）
+- [ ] v0.0.5 多提供商 + Electron 桌面壳 + 会话管理 ⬅ 当前
+- [ ] v0.0.6 对话记忆持久化 + 会话标题自动生成
 - [ ] v0.1.0 可扩展工具插件系统
 
 ## 致谢
